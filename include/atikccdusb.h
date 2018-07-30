@@ -41,7 +41,7 @@ enum COLOUR_TYPE {
   COLOUR_NONE = 1, COLOUR_RGGB
 };
 
-struct AtikCapabilities {
+typedef struct AtikCapabilities {
   bool hasShutter;
   bool hasGuidePort;
   bool has8BitMode;
@@ -57,7 +57,7 @@ struct AtikCapabilities {
   bool supportsLongExposure;
   double minShortExposure;
   double maxShortExposure;
-};
+} AtikCapabilities;
 
 class AtikCamera {
   public:
