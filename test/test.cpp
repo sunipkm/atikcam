@@ -5,6 +5,24 @@
 
 #include "atikccdusb.h"
 
+
+/* Timing */
+
+#include <chrono>
+#include <thread>
+
+// There are other clocks, but this is usually the one you want.
+// It corresponds to CLOCK_MONOTONIC at the syscall level.
+using Clock = std::chrono::steady_clock;
+using std::chrono::time_point;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+//using namespace std::literals::chrono_literals;
+using std::this_thread::sleep_for;
+
+/**********/
+
+
 using namespace std ;
 
 #define MAX 1
@@ -67,9 +85,16 @@ int main ( void )
 		unsigned height = device -> imageHeight(devcap->pixelCountY,1) ;
 
 		cerr << "Exposing whole sensor: " << endl ;
-
+		
+		time_point<Clock> start = Clock::now();
+			
 		success = device->readCCD(0,0,devcap->pixelCountX,devcap->pixelCountY,1,1,0.01) ; //10ms exposure
-
+		
+		time_point <Clock> end = Clock::now() ;
+		
+		milliseconds diff = duration_cast<milliseconds>(end - start);
+    		std::cout << "Time taken by exposure: " << diff.count() << "ms" << std::endl;
+		
 		if ( ! success )
 			exit(0) ;
 

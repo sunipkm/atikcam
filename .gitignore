@@ -40,3 +40,9 @@ macosx/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Program Generated Files #
+###########################
+*.fits
+*.png
+*.dat
