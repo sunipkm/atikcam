@@ -2,6 +2,8 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
+#include <sys/types.h>
 
 #include "atikccdusb.h"
 
@@ -52,7 +54,7 @@ int main ( void )
 		if ( devcap -> tempSensorCount > 0 )
 			while(!done)
 			{
-				for ( unsigned sensor = 1 ; success && sensor <= devcap -> tempSensorCount l sensor ++ )
+				for ( unsigned sensor = 1 ; success && sensor <= devcap -> tempSensorCount ; sensor ++ )
 				{
 					float temp ;
 					success = device -> getTemperatureSensorStatus(sensor,&temp) ;
