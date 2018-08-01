@@ -97,7 +97,7 @@ int main ( void )
 		#pragma omp parallel
 		{
 
-			if ( omp_get_thread_num == 0 ) 
+			if ( omp_get_thread_num() == 0 ) 
 			{
 				cerr << "Thread 0 : Exposing whole sensor: " << endl ;
 		
@@ -111,31 +111,34 @@ int main ( void )
 				milliseconds diff = duration_cast<milliseconds>(end - start);
     			std::cout << "Thread 0 : Time taken by exposure: " << diff.count() << "ms" << std::endl;
 				#endif //SK_ATIK_DEBUG
+    			unsigned short * data = ( unsigned short * ) malloc ( width * height * sizeof ( unsigned short ) ) ;
+				success = device -> getImage(data,width*height) ;
+				
+				if ( ! success )
+				exit(0) ;
 
+				save("short.fits",data,width,height) ;
+
+				free(data) ;
 			}
-			if ( omp_get_thread_num == 1 )
+			if ( omp_get_thread_num() == 1 )
 			{
 				if ( devcap -> tempSensorCount > 0 )
 				{
+					while(true){
 					cerr << "Temperature Sensor: " << endl ;
 					for ( unsigned sensor = 1 ; success && sensor <= devcap -> tempSensorCount ; sensor ++ ){
 						float temp ;
 						success = device -> getTemperatureSensorStatus(sensor,&temp) ;
 						cerr << "Sensor: " << sensor << ", Temp: " << temp << endl ;
-					}
+					}}
 				}
 			}
 		}
-		unsigned short * data = ( unsigned short * ) malloc ( width * height * sizeof ( unsigned short ) ) ;
-		success = device -> getImage(data,width*height) ;
 
 
-		if ( ! success )
-			exit(0) ;
+		
 
-		save("short.fits",data,width,height) ;
-
-		free(data) ;
 	}
 	return 0 ;
 }
