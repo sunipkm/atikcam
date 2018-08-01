@@ -33,7 +33,7 @@ int main ( void )
 	action1.sa_handler = term;
 	sigaction(SIGINT, &action1, NULL);
 
-	AtikDebug = true ;
+	AtikDebug = false ;
 	int firstrun = 1 ;
 	do {
 	if ( ! firstrun )
