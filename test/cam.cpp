@@ -8,6 +8,8 @@
 
 /* Timing */
 
+#ifdef SK_ATIK_DEBUG
+
 #include <chrono>
 #include <thread>
 
@@ -20,6 +22,7 @@ using std::chrono::milliseconds;
 //using namespace std::literals::chrono_literals;
 using std::this_thread::sleep_for;
 
+#endif //SK_ATIK_DEBUG
 /**********/
 
 
@@ -50,7 +53,12 @@ void save(const char *fileName, unsigned short * data , unsigned width, unsigned
 
 int main ( void )
 {
+	#ifdef SK_ATIK_DEBUG
 	AtikDebug = true ;
+	#else
+	AtikDebug = false ;
+	#endif //SK_ATIK_DEBUG
+
 	cerr << "Devlist: " << endl ;
 	int count = AtikCamera::list(devices,MAX) ;
 	for ( int i = 0 ; i < count ; i++ )
@@ -86,15 +94,17 @@ int main ( void )
 
 		cerr << "Exposing whole sensor: " << endl ;
 		
+		#ifdef SK_ATIK_DEBUG
 		time_point<Clock> start = Clock::now();
-			
+		#endif //SK_ATIK_DEBUG
 		success = device->readCCD(0,0,devcap->pixelCountX,devcap->pixelCountY,1,1,0.01) ; //10ms exposure
-		
+		#ifdef SK_ATIK_DEBUG
 		time_point <Clock> end = Clock::now() ;
 		
 		milliseconds diff = duration_cast<milliseconds>(end - start);
     		std::cout << "Time taken by exposure: " << diff.count() << "ms" << std::endl;
-		
+		#endif //SK_ATIK_DEBUG
+
 		if ( ! success )
 			exit(0) ;
 
