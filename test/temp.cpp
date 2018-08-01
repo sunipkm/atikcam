@@ -67,7 +67,7 @@ int main ( void )
 				cout << endl ;
 			}
 		device -> close() ;	
-		firstrun = 0 ;
 	}
-	}while(true) ;
+			firstrun = 0 ;
+	}while(!done) ;
 }
