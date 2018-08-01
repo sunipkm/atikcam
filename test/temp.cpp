@@ -34,6 +34,10 @@ int main ( void )
 	sigaction(SIGINT, &action1, NULL);
 
 	AtikDebug = true ;
+	int firstrun = 1 ;
+	do {
+	if ( ! firstrun )
+		usleep(10000000) ;
 	int count = AtikCamera::list(devices,MAX) ;
 
 	for ( int i = 0 ; i < count ; i++ )
@@ -52,7 +56,7 @@ int main ( void )
 		if ( success ) cout << "Device " << devname << " returned capabilities." << endl ;
 
 		if ( devcap -> tempSensorCount > 0 )
-			while(!done)
+			while(!done && success)
 			{
 				for ( unsigned sensor = 1 ; success && sensor <= devcap -> tempSensorCount ; sensor ++ )
 				{
@@ -63,5 +67,7 @@ int main ( void )
 				cout << endl ;
 			}
 		device -> close() ;	
+		firstrun = 0 ;
 	}
+	}while(true) ;
 }
