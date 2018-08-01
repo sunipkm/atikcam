@@ -125,12 +125,14 @@ int main ( void )
 			{
 				if ( devcap -> tempSensorCount > 0 )
 				{
+					int k = 0 ;
 					while(true){
 					cerr << "Temperature Sensor: " << endl ;
 					for ( unsigned sensor = 1 ; success && sensor <= devcap -> tempSensorCount ; sensor ++ ){
 						float temp ;
 						success = device -> getTemperatureSensorStatus(sensor,&temp) ;
-						cerr << "Sensor: " << sensor << ", Temp: " << temp << endl ;
+						cerr << k << " Sensor: " << sensor << ", Temp: " << temp << endl ;
+						usleep(1000000) ;
 					}}
 				}
 			}
