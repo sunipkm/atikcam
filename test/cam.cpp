@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fitsio.h>
+#include <omp.h>
 
 #include "atikccdusb.h"
 
@@ -53,6 +54,7 @@ void save(const char *fileName, unsigned short * data , unsigned width, unsigned
 
 int main ( void )
 {
+	omp_set_num_threads(2) ;
 	#ifdef SK_ATIK_DEBUG
 	AtikDebug = true ;
 	#else
@@ -92,22 +94,38 @@ int main ( void )
 		unsigned width = device -> imageWidth(devcap->pixelCountX,1) ;
 		unsigned height = device -> imageHeight(devcap->pixelCountY,1) ;
 
-		cerr << "Exposing whole sensor: " << endl ;
-		
-		#ifdef SK_ATIK_DEBUG
-		time_point<Clock> start = Clock::now();
-		#endif //SK_ATIK_DEBUG
-		success = device->readCCD(0,0,devcap->pixelCountX,devcap->pixelCountY,1,1,0.01) ; //10ms exposure
-		#ifdef SK_ATIK_DEBUG
-		time_point <Clock> end = Clock::now() ;
-		
-		milliseconds diff = duration_cast<milliseconds>(end - start);
-    		std::cout << "Time taken by exposure: " << diff.count() << "ms" << std::endl;
-		#endif //SK_ATIK_DEBUG
+		#pragma omp parallel
+		{
 
-		if ( ! success )
-			exit(0) ;
+			if ( omp_get_thread_num == 0 ) 
+			{
+				cerr << "Thread 0 : Exposing whole sensor: " << endl ;
+		
+				#ifdef SK_ATIK_DEBUG
+				time_point<Clock> start = Clock::now();
+				#endif //SK_ATIK_DEBUG
+				success = device->readCCD(0,0,devcap->pixelCountX,devcap->pixelCountY,1,1,0.01) ; //10ms exposure
+				#ifdef SK_ATIK_DEBUG
+				time_point <Clock> end = Clock::now() ;
+		
+				milliseconds diff = duration_cast<milliseconds>(end - start);
+    			std::cout << "Thread 0 : Time taken by exposure: " << diff.count() << "ms" << std::endl;
+				#endif //SK_ATIK_DEBUG
 
+			}
+			if ( omp_get_thread_num == 1 )
+			{
+				if ( devcap -> tempSensorCount > 0 )
+				{
+					cerr << "Temperature Sensor: " << endl ;
+					for ( unsigned sensor = 1 ; success && sensor <= devcap -> tempSensorCount ; sensor ++ ){
+						float temp ;
+						success = device -> getTemperatureSensorStatus(sensor,&temp) ;
+						cerr << "Sensor: " << sensor << ", Temp: " << temp << endl ;
+					}
+				}
+			}
+		}
 		unsigned short * data = ( unsigned short * ) malloc ( width * height * sizeof ( unsigned short ) ) ;
 		success = device -> getImage(data,width*height) ;
 
