@@ -144,7 +144,7 @@ int main ( void )
 			return 1 ;
 		}
 		#ifdef SK_DEBUG
-		cerr << "Info: Free Space: << free_space / ( 1024 * 1024 ) << "MiB" << endl ;
+		cerr << "Info: Free Space: " << free_space / ( 1024 * 1024 ) << "MiB" << endl ;
 		#endif
 	}
 	/********************************************************************/
