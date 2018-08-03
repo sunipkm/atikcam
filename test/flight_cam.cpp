@@ -21,6 +21,8 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
@@ -53,6 +55,8 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #define PIX_GIVE 5000.0
 #endif
 
+#define ERRLOG errlog<<"["<<timenow()<<"]: "
+
 using namespace std ;
 
 /** Globals **/
@@ -83,9 +87,9 @@ void sys_poweroff() ;
 
 void sys_reboot() ;
 
-short compare ( const void * a , const void * b)
+int compare ( const void * a , const void * b)
 {
-	return ( * ( unsigned short * a ) - * ( unsigned short * b ) ) ;
+	return ( * ( int * a ) - * ( int * b ) ) ;
 }
 
 long timenow()
@@ -104,11 +108,11 @@ int main ( void )
 
 	struct sigaction action[2] ;
 	memset(&action[0], 0, sizeof(struct sigaction)) ;
-	action.sa_handler = term ;
+	action[0].sa_handler = term ;
 	sigaction(SIGTERM, &action[0],NULL ) ;
 
 	memset(&action[1], 0, sizeof(struct sigaction)) ;
-	action.sa_handler = term ;
+	action[1].sa_handler = term ;
 	sigaction(SIGINT, &action[1],NULL ) ;
 
 	/************************/
@@ -125,7 +129,7 @@ int main ( void )
 	if ( statvfs ( curr_dir , fsinfo ) == 0 )
 	{
 		unsigned long long free_space = fsinfo -> f_bsize * fsinfo -> f_bavail ;
-		if ( free_blocks < 1 * 1024 * 1024 )
+		if ( free_space < 1 * 1024 * 1024 )
 		{
 			perror("Not enough free space. Shutting down.\n") ;
 			sys_poweroff() ;
@@ -148,7 +152,7 @@ int main ( void )
 	#define TEMPLOG_LOCATION "temp_log.bin"
 	#endif
 
-	templog.open( TEMPLOG_LOCATION , ios::binary && ios::app ) ;
+	templog.open( TEMPLOG_LOCATION , ios::binary | ios::app ) ;
 	bool templogstat = true ;
 	if ( !templog.good() )
 	{
@@ -163,7 +167,7 @@ int main ( void )
 	#define CAMLOG_LOCATION "cam_log.bin"
 	#endif
 
-	camlog.open(CAMLOG_LOCATION,ios::binary && ios::app) ;
+	camlog.open(CAMLOG_LOCATION,ios::binary | ios::app) ;
 	if ( !camlog.good() )
 	{
 		cerr << "Error: Unable to open camera log stream." << endl ;
@@ -181,8 +185,6 @@ int main ( void )
 	{
 		cerr << "Error: Unable to open error log stream." << endl ;
 	}
-
-	#define ERRLOG errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": "
 
 	/***************/
 
@@ -214,7 +216,7 @@ int main ( void )
 			cerr << "Name: " << device -> getName() << endl ;
 			#endif
 
-			AtikCapabilites * devcap = new AtikCapabilites ; //device specific variables
+			struct AtikCapabilites * devcap = new struct AtikCapabilites ; //device specific variables
 			const char * devname ; CAMERA_TYPE type ;
 
 			success1 = device -> getCapabilities(&devname, &type, devcap) ;
@@ -248,8 +250,8 @@ int main ( void )
 
 			bool       longExpMode = devcap -> supportsLongExposure ;
 
-			           minShortExp = devcap -> minShortExposure ;
-			           maxShortExp = devcap -> maxShortExposure ;
+			           minShortExposure = devcap -> minShortExposure ;
+			           maxShortExposure = devcap -> maxShortExposure ;
 
 			#ifdef SK_DEBUG
 			cerr << "Device: AtikCapabilities:" << endl ;
@@ -269,7 +271,7 @@ int main ( void )
 				cerr << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				#endif
 				ERRLOG << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
-				delete devcap ;
+				delete [] devcap ;
 				break ;
 			}
 
@@ -305,7 +307,7 @@ int main ( void )
 			cerr << "Info: Preparing to take first exposure." << endl ;
 			#endif
 			long tnow = timenow() ; //measured time
-			success1 = device -> readCCD ( 0 , 0 , pixX , pixY , 1 , 1 , maxShortExposure ) ;
+			success1 = device -> readCCD ( 0 , 0 , pixelCX , pixelCY , 1 , 1 , maxShortExposure ) ;
 			#ifdef SK_DEBUG
 			cerr << "Info: Exposure Complete. Returned: " << success1 << endl ;
 			#endif
@@ -316,7 +318,7 @@ int main ( void )
 				#endif
 				ERRLOG << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete devcap ;
+				delete [] devcap ;
 				break ;
 			}
 			success1 = device -> getImage ( picdata , imgsize ) ;
@@ -327,12 +329,12 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not get data off of the camera. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete    devcap  ;
+				delete [] devcap  ;
 				break ;
 			}
 
 			/** Let's save the data first **/
-			char[] gfname = to_string(tnow) + ".bin.gz" ;
+			char gfname[255] = to_string(tnow) + ".bin.gz" ;
 			ogzstream out(gfname) ;
 
 			if ( !out.good() )
@@ -342,13 +344,13 @@ int main ( void )
 				#endif
 				ERRLOG << "Error: Could not open output stream. Check for storage space?" << endl ;
 				delete [] picdata ;
-				delete    devcap  ;
+				delete [] devcap  ;
 				break ;
 			}
 			out << tnow << ( float ) << exposure << pixelCX << pixelCY ;
 
 			for ( unsigned i = 0 ; i < imgsize ; i++ )
-				ogzstream << picdata [ i ] ;
+				out << picdata [ i ] ;
 			out.close() ;
 
 			if ( !out.good() )
@@ -358,7 +360,7 @@ int main ( void )
 				#endif
 				ERRLOG << "Error: Could not succesfully write the first image to disk." << endl ;
 				delete [] picdata ;
-				delete    devcap ;
+				delete [] devcap ;
 				break ;
 			}
 			/*****************************/
@@ -372,7 +374,7 @@ int main ( void )
 				#endif
 				ERRLOG << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				delete [] picdata ;
-				delete    devcap ;
+				delete [] devcap ;
 				break ;
 			}
 
@@ -458,10 +460,10 @@ int main ( void )
 					#endif
 					ERRLOG << "Error: Could not open output stream. Check for storage space?" << endl ;
 					delete [] picdata ;
-					delete    devcap  ;
+					delete [] devcap  ;
 					break ;
 				}
-				out << tnow << ( float ) << exposure << pixelCX << pixelCY ;
+				out << tnow << ( float ) exposure << pixelCX << pixelCY ;
 
 				for ( unsigned i = 0 ; i < imgsize ; i++ )
 					out << picdata [ i ] ;
@@ -474,7 +476,7 @@ int main ( void )
 					#endif
 					ERRLOG << "Error: Could not succesfully write the first image to disk." << endl ;
 					delete [] picdata ;
-					delete    devcap ;
+					delete [] devcap ;
 					break ;
 				}
 				/*****************************/
@@ -488,7 +490,7 @@ int main ( void )
 					#endif
 					ERRLOG << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 					delete [] picdata ;
-					delete    devcap ;
+					delete [] devcap ;
 					break ;
 				}
 				sync() ;
@@ -500,7 +502,7 @@ int main ( void )
 			} //loop 3
 
 			delete [] picdata ;
-			delete    devcap ;
+			delete [] devcap ;
 		} //loop 2
 
 	} while ( ! done ) ; //loop 1
@@ -573,7 +575,7 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 		#ifdef SK_DEBUG
 		cerr << "Info: Exposure time greater than max short exposure, opting for long exposure mode."
 		#endif
-		success = device ->startExposur(false) ; //false for some gain mode thing
+		success = device ->startExposure(false) ; //false for some gain mode thing
 		if ( ! success )
 		{	
 			#ifdef SK_DEBUG
@@ -620,7 +622,7 @@ char space_left(void)
 	if ( statvfs ( curr_dir , fsinfo ) == 0 )
 	{
 		unsigned long long free_space = fsinfo -> f_bsize * fsinfo -> f_bavail ;
-		if ( free_blocks < 1 * 1024 * 1024 )
+		if ( free_space < 1 * 1024 * 1024 )
 		{
 			#ifdef SK_DEBUG
 			cerr << "Error: Not enough space." << endl ;
