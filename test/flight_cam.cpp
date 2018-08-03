@@ -24,6 +24,7 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <chrono>
 #include <thread>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -87,7 +88,7 @@ void sys_reboot() ;
 
 int compare ( const void * a , const void * b)
 {
-	return ( * ( int * a ) - * ( int * b ) ) ;
+	return ( * ( (unsigned short *) a ) - * ( (unsigned short *) b ) ) ;
 }
 
 long timenow()
@@ -178,7 +179,7 @@ int main ( void )
 	#define ERRLOG_LOCATION "err_log.txt"
 	#endif
 
-	errlog.open(errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": "_LOCATION,ios::app) ;
+	errlog.open(ERRLOG_LOCATION,ios::app) ;
 	if(!errlog.good())
 	{
 		cerr << "Error: Unable to open error log stream." << endl ;
@@ -214,7 +215,7 @@ int main ( void )
 			cerr << "Name: " << device -> getName() << endl ;
 			#endif
 
-			struct AtikCapabilites * devcap = new struct AtikCapabilites ; //device specific variables
+			struct AtikCapabilites * devcap = ( struct AtikCapabilities * ) malloc ( sizeof ( struct AtikCapabilities ) ) ; //device specific variables
 			const char * devname ; CAMERA_TYPE type ;
 
 			success1 = device -> getCapabilities(&devname, &type, devcap) ;
@@ -269,7 +270,7 @@ int main ( void )
 				cerr << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
-				delete [] devcap ;
+				free(devcap) ;
 				break ;
 			}
 
@@ -316,7 +317,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete [] devcap ;
+				free(devcap) ;
 				break ;
 			}
 			success1 = device -> getImage ( picdata , imgsize ) ;
@@ -327,7 +328,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not get data off of the camera. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete [] devcap  ;
+				free(devcap)  ;
 				break ;
 			}
 
@@ -342,7 +343,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 				delete [] picdata ;
-				delete [] devcap  ;
+				free(devcap)  ;
 				break ;
 			}
 			out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -358,7 +359,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 				delete [] picdata ;
-				delete [] devcap ;
+				free(devcap) ;
 				break ;
 			}
 			/*****************************/
@@ -372,7 +373,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				delete [] picdata ;
-				delete [] devcap ;
+				free(devcap) ;
 				break ;
 			}
 
@@ -458,7 +459,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 					delete [] picdata ;
-					delete [] devcap  ;
+					free(devcap)  ;
 					break ;
 				}
 				out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -474,7 +475,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 					delete [] picdata ;
-					delete [] devcap ;
+					free(devcap) ;
 					break ;
 				}
 				/*****************************/
@@ -488,7 +489,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 					delete [] picdata ;
-					delete [] devcap ;
+					free(devcap) ;
 					break ;
 				}
 				sync() ;
@@ -500,7 +501,7 @@ int main ( void )
 			} //loop 3
 
 			delete [] picdata ;
-			delete [] devcap ;
+			free(devcap) ;
 		} //loop 2
 
 	} while ( ! done ) ; //loop 1
