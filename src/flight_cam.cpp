@@ -229,7 +229,7 @@ int main ( void )
 
 			success1 = device -> open() ; //open device for access
 			#ifdef SK_DEBUG
-			cerr << "Info: device -> open(): " << success1 ? "Success" : "Failure" << endl ;
+			cerr << "Info: device -> open(): " << success1 << endl ;
 			#endif
 
 			if ( !success1 ){ //if failed
@@ -250,7 +250,7 @@ int main ( void )
 			success1 = device -> getCapabilities(&devname, &type, devcap) ;
 
 			#ifdef SK_DEBUG
-			cerr << "Info: getCapabilities: " << success1 ? "Success" : "Failure" << endl ;
+			cerr << "Info: getCapabilities: " << success1 << endl ;
 			#endif
 
 			if ( !success1 ){ //if failed
@@ -368,7 +368,7 @@ int main ( void )
 				break ;
 			}
 			#ifdef SK_DEBUG
-			cerr << "Info: getImage() -> " << success1 ? "Success" : "Failure" << endl ;
+			cerr << "Info: getImage() -> " << success1 << endl ;
 			#endif
 
 			/** Let's save the data first **/
