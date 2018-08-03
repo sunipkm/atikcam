@@ -564,7 +564,7 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 	if ( exposure <= maxShortExposure )
 	{
 		#ifdef SK_DEBUG
-		cerr << "Info: Exposure time less than max short exposure, opting for short exposure mode."
+		cerr << "Info: Exposure time less than max short exposure, opting for short exposure mode." << endl ;
 		#endif
 		success = device -> readCCD(0,0,pixX,pixY,1,1,exposure) ;
 		if ( ! success )
@@ -578,7 +578,7 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 	else if ( exposure > maxShortExposure )
 	{
 		#ifdef SK_DEBUG
-		cerr << "Info: Exposure time greater than max short exposure, opting for long exposure mode."
+		cerr << "Info: Exposure time greater than max short exposure, opting for long exposure mode." << endl ;
 		#endif
 		success = device ->startExposure(false) ; //false for some gain mode thing
 		if ( ! success )
