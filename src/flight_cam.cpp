@@ -21,6 +21,7 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <cmath>
 #include <string>
 #include <chrono>
 #include <thread>
@@ -608,6 +609,9 @@ int main ( void )
 
 double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize , double exposure )
 {
+	#ifdef SK_DEBUG
+	cerr << __FUNCTION__ << " : Received exposure: " << exposure << endl ;
+	#endif
 	double result = exposure ;
 	double val ;
 	qsort(picdata,imgsize,sizeof(unsigned short),compare) ;
@@ -621,7 +625,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	#endif
 
 	#ifndef PIX_MEDIAN
-	#define PIX_MEDIAN 10000.0
+	#define PIX_MEDIAN 20000.0
 	#endif
 
 	#ifndef PIX_GIVE
@@ -635,9 +639,13 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 
 	result = ((double)PIX_MEDIAN) * exposure / ((double)val) ;
 
-	if ( result < minShortExposure )
-		return -1 ;
-	unsigned long mult = ( unsigned long ) result / minShortExposure ;
+	#ifdef SK_DEBUG
+	cerr << __FUNCTION__ << " : Determined exposure from median " << val << ": " << result << endl ;
+	#endif
+
+	if ( result <= minShortExposure )
+		return minShortExposure ;
+	unsigned long mult = ceil ( result / minShortExposure ) ;
 	result = mult * minShortExposure ;
 	return result ;
 }
