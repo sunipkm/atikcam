@@ -21,6 +21,7 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <string>
 #include <chrono>
 #include <thread>
 #include <unistd.h>
@@ -333,7 +334,7 @@ int main ( void )
 			}
 
 			/** Let's save the data first **/
-			char gfname[255] = "" ;
+			string gfname ;
 			gfname = to_string(tnow) + ".bin.gz" ;
 			ogzstream out(gfname) ;
 
