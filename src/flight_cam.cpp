@@ -35,6 +35,9 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <limits.h>
 #include <omp.h>
 
+#include <boost/filesystem.hpp>
+using namespace boost::filesystem ;
+
 #include "gzstream.h"
 
 #include "atikccdusb.h"
@@ -132,21 +135,18 @@ int main ( void )
 	#ifdef SK_DEBUG
 	cerr << "Info: PWD: " << curr_dir << endl ;
 	#endif
-
-	fsinfo = new struct statvfs ;
-	if ( statvfs ( curr_dir , fsinfo ) == 0 )
+	space_info si = space(curr_dir) ;
+	long long free_space = (long long) si.available ;
+	if ( free_space < 1 * 1024 * 1024 )
 	{
-		unsigned long long free_space = fsinfo -> f_bsize * fsinfo -> f_bavail ;
-		if ( free_space < 1 * 1024 * 1024 )
-		{
-			perror("Not enough free space. Shutting down.\n") ;
-			sys_poweroff() ;
-			return 1 ;
-		}
-		#ifdef SK_DEBUG
-		cerr << "Info: Free Space: " << free_space / ( 1024 * 1024 ) << "MiB" << endl ;
-		#endif
+		perror("Not enough free space. Shutting down.\n") ;
+		sys_poweroff() ;
+		return 1 ;
 	}
+	#ifdef SK_DEBUG
+	cerr << "Info: Free Space: " << free_space << endl ;
+	#endif
+
 	/********************************************************************/
 
 	/** Atik Debug Messages (prints to stdout/stderr) **/
@@ -160,7 +160,7 @@ int main ( void )
 	/** Atik Camera Temperature Log **/
 	ofstream templog ;
 	#ifndef TEMPLOG_LOCATION
-	#define TEMPLOG_LOCATION "temp_log.bin"
+	#define TEMPLOG_LOCATION "/home/sunip/temp_log.bin"
 	#endif
 
 	templog.open( TEMPLOG_LOCATION , ios::binary | ios::app ) ;
@@ -179,7 +179,7 @@ int main ( void )
 	/** Camera Missing Log **/
 	ofstream camlog ;
 	#ifndef CAMLOG_LOCATION
-	#define CAMLOG_LOCATION "cam_log.bin"
+	#define CAMLOG_LOCATION "/home/sunip/cam_log.bin"
 	#endif
 
 	camlog.open(CAMLOG_LOCATION,ios::binary | ios::app) ;
@@ -195,7 +195,7 @@ int main ( void )
 	/** Error Log **/
 	ofstream errlog ;
 	#ifndef ERRLOG_LOCATION
-	#define ERRLOG_LOCATION "err_log.txt"
+	#define ERRLOG_LOCATION "/home/sunip/err_log.txt"
 	#endif
 
 	errlog.open(ERRLOG_LOCATION,ios::app) ;
@@ -699,18 +699,13 @@ void sys_reboot(void)
 
 char space_left(void)
 {
-	if ( statvfs ( curr_dir , fsinfo ) == 0 )
+	space_info si = space(curr_dir) ;
+	long long free_space = (long long) si.available ;
+	if ( free_space < 1 * 1024 * 1024 )
 	{
-		unsigned long long free_space = fsinfo -> f_bsize * fsinfo -> f_bavail ;
-		if ( free_space < 1 * 1024 * 1024 )
-		{
-			#ifdef SK_DEBUG
-			cerr << "Error: Not enough space." << endl ;
-			#endif
-			return 0x00 ;
-		}
-		else
-			return 0x01 ;
+		perror("Not enough free space. Shutting down.\n") ;
+		sys_poweroff() ;
+		return 1 ;
 	}
-	else return -1 ; //extreme error!
+	else return 0 ;
 }
