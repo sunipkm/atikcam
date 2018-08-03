@@ -491,6 +491,7 @@ int main ( void )
 					delete    devcap ;
 					break ;
 				}
+				sync() ;
 				if ( old_exposure < PIC_TIME_GAP ) //sleep for rest of the time if on shorter than PIC_TIME_GAP (s) exposure
 					usleep((long)(PIC_TIME_GAP-old_exposure)*1000000) ;
 				/************************************/
