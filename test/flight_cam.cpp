@@ -41,6 +41,10 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #define TIME_WAIT_USB 1000000
 #endif
 
+#ifndef PIC_TIME_GAP
+#define PIC_TIME_GAP 10.0 // minimum gap between images in seconds
+#endif
+
 #ifndef PIX_MEDIAN
 #define PIX_MEDIAN 10000.0
 #endif
@@ -377,6 +381,7 @@ int main ( void )
 			success2 = true ;
 			while ( ( ! done) && success1 && space_left() > 0 )
 			{
+				double old_exposure = exposure ;
 				/** Taking Picture and logging temperature **/
 				if ( exposure <= maxShortExposure )
 				{
@@ -435,6 +440,7 @@ int main ( void )
 										templog << (unsigned char) sensor << timenow() << temp << (unsigned char) 0x00 ;
 									}
 								}
+								usleep ( 1000 ) ;
 							}
 						}
 					}
@@ -485,7 +491,8 @@ int main ( void )
 					delete    devcap ;
 					break ;
 				}
-
+				if ( old_exposure < PIC_TIME_GAP ) //sleep for rest of the time if on shorter than PIC_TIME_GAP (s) exposure
+					usleep((long)(PIC_TIME_GAP-old_exposure)*1000000) ;
 				/************************************/
 				/*********************/
 
