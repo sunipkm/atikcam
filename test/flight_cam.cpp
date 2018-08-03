@@ -55,8 +55,6 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #define PIX_GIVE 5000.0
 #endif
 
-#define ERRLOG errlog<<"["<<timenow()<<"]: "
-
 using namespace std ;
 
 /** Globals **/
@@ -180,7 +178,7 @@ int main ( void )
 	#define ERRLOG_LOCATION "err_log.txt"
 	#endif
 
-	errlog.open(ERRLOG_LOCATION,ios::app) ;
+	errlog.open(errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": "_LOCATION,ios::app) ;
 	if(!errlog.good())
 	{
 		cerr << "Error: Unable to open error log stream." << endl ;
@@ -270,7 +268,7 @@ int main ( void )
 				#ifdef SK_DEBUG
 				cerr << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				#endif
-				ERRLOG << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
+				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				delete [] devcap ;
 				break ;
 			}
@@ -316,7 +314,7 @@ int main ( void )
 				#ifdef SK_DEBUG
 				cerr << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				#endif
-				ERRLOG << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
+				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
 				delete [] devcap ;
 				break ;
@@ -342,12 +340,12 @@ int main ( void )
 				#ifdef SK_DEBUG
 				cerr << "Error: Could not open filestream to write data to." << endl ;
 				#endif
-				ERRLOG << "Error: Could not open output stream. Check for storage space?" << endl ;
+				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 				delete [] picdata ;
 				delete [] devcap  ;
 				break ;
 			}
-			out << tnow << ( float ) << exposure << pixelCX << pixelCY ;
+			out << tnow << ( float ) exposure << pixelCX << pixelCY ;
 
 			for ( unsigned i = 0 ; i < imgsize ; i++ )
 				out << picdata [ i ] ;
@@ -358,7 +356,7 @@ int main ( void )
 				#ifdef SK_DEBUG
 				cerr << "Error: Something went wrong when writing the first exposure." << endl ;
 				#endif
-				ERRLOG << "Error: Could not succesfully write the first image to disk." << endl ;
+				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 				delete [] picdata ;
 				delete [] devcap ;
 				break ;
@@ -372,7 +370,7 @@ int main ( void )
 				#ifdef SK_DEBUG
 				cerr << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				#endif
-				ERRLOG << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
+				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				delete [] picdata ;
 				delete [] devcap ;
 				break ;
@@ -394,7 +392,7 @@ int main ( void )
 						#ifdef SK_DEBUG
 						cerr << "[" << tnow << "] Error: Single Thread Mode: Could not snap picture." << endl ; 
 						#endif
-						ERRLOG << "Error: Single Thread Mode: Could not snap picture." << endl ;
+						errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Single Thread Mode: Could not snap picture." << endl ;
 					}
 					if ( templogstat )
 					{
@@ -408,7 +406,7 @@ int main ( void )
 							#ifdef SK_DEBUG
 							cerr << "[" << timenow() << "]: Warning: Could not read temperature sensor." << endl ;
 							#endif
-							ERRLOG << "Warning: Could not read temperature sensor." << endl ; 
+							errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Warning: Could not read temperature sensor." << endl ; 
 						}
 					}
 				}
@@ -427,7 +425,7 @@ int main ( void )
 								#ifdef SK_DEBUG
 								cerr << "[" << tnow << "] Error: Could not snap picture." << endl ; 
 								#endif
-								ERRLOG << "Error: Could not snap picture." << endl ;
+								errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not snap picture." << endl ;
 							}
 						}
 						if ( omp_get_thread_num( ) == 1 ) //second thread to take images
@@ -458,7 +456,7 @@ int main ( void )
 					#ifdef SK_DEBUG
 					cerr << "Error: Could not open filestream to write data to." << endl ;
 					#endif
-					ERRLOG << "Error: Could not open output stream. Check for storage space?" << endl ;
+					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 					delete [] picdata ;
 					delete [] devcap  ;
 					break ;
@@ -474,7 +472,7 @@ int main ( void )
 					#ifdef SK_DEBUG
 					cerr << "Error: Something went wrong when writing the first exposure." << endl ;
 					#endif
-					ERRLOG << "Error: Could not succesfully write the first image to disk." << endl ;
+					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 					delete [] picdata ;
 					delete [] devcap ;
 					break ;
@@ -488,7 +486,7 @@ int main ( void )
 					#ifdef SK_DEBUG
 					cerr << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 					#endif
-					ERRLOG << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
+					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 					delete [] picdata ;
 					delete [] devcap ;
 					break ;
@@ -627,7 +625,7 @@ char space_left(void)
 			#ifdef SK_DEBUG
 			cerr << "Error: Not enough space." << endl ;
 			#endif
-			ERRLOG << "Error: Not enough space." << endl ;
+			errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Not enough space." << endl ;
 			return 0x00 ;
 		}
 		else
