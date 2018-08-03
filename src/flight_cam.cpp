@@ -435,10 +435,14 @@ int main ( void )
 				break ;
 			}
 
+			#ifdef SK_DEBUG
+			cerr << "Loop conditions: done " << done << " : success1 " << success1 << " : space_left() " << space_left() << endl ;
+			#endif
+
 			/************************************/
 			omp_set_num_threads( 2 ) ;
 			success2 = true ;
-			while ( ( ! done) && success1 && space_left() > 0 )
+			while ( ( ! done) && success1 && (space_left() > 0 ))
 			{
 				#ifdef SK_DEBUG
 				cerr << "Info: Entered loop mode." << endl ;
