@@ -114,6 +114,10 @@ int main ( void )
 	memset(&action[1], 0, sizeof(struct sigaction)) ;
 	action[1].sa_handler = term ;
 	sigaction(SIGINT, &action[1],NULL ) ;
+	
+	#ifdef SK_DEBUG
+	cerr << "Info: Set up interrupt handlers." << endl ;
+	#endif
 
 	/************************/
 
@@ -124,6 +128,10 @@ int main ( void )
 		sys_poweroff() ;
 		return 1 ;
 	}
+	
+	#ifdef SK_DEBUG
+	cerr << "Info: PWD: " << curr_dir << endl ;
+	#endif
 
 	fsinfo = new struct statvfs ;
 	if ( statvfs ( curr_dir , fsinfo ) == 0 )
@@ -135,6 +143,9 @@ int main ( void )
 			sys_poweroff() ;
 			return 1 ;
 		}
+		#ifdef SK_DEBUG
+		cerr << "Info: Free Space: << free_space / ( 1024 * 1024 ) << "MiB" << endl ;
+		#endif
 	}
 	/********************************************************************/
 
@@ -159,6 +170,10 @@ int main ( void )
 		cerr << "Error: Unable to open temperature log stream." << endl ;
 		templogstat = false ;
 	}
+	
+	#ifdef SK_DEBUG
+	cerr << "Info: Opened temperature log file" << endl ;
+	#endif
 	/*********************************/
 
 	/** Camera Missing Log **/
@@ -172,6 +187,9 @@ int main ( void )
 	{
 		cerr << "Error: Unable to open camera log stream." << endl ;
 	}
+	#ifdef SK_DEBUG
+	cerr << "Info: Opened camera log file." << endl ;
+	#endif
 	/************************/
 
 	/** Error Log **/
@@ -192,11 +210,14 @@ int main ( void )
 	do {
 		if ( ! firstrun ){
 			#ifdef SK_DEBUG
-			cerr << "Camera not found. Waiting..." << endl ;
+			cerr << "Camera not found. Waiting " << TIME_WAIT_USB / 1000000 << " s..." << endl ;
 			#endif
 			usleep ( TIME_WAIT_USB ) ; //spend 1 seconds between looking for the camera every subsequent runs
 		}
 		int count = AtikCamera::list(devices,MAX) ;
+		#ifdef SK_DEBUG
+		cerr << "List: " << count << " number of devices." << endl ;
+		#endif
 		if ( ! count )
 		{
 			camlog << timenow() << (unsigned char) 0x00 ;
