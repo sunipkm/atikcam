@@ -215,7 +215,7 @@ int main ( void )
 			cerr << "Name: " << device -> getName() << endl ;
 			#endif
 
-			struct AtikCapabilites * devcap = ( struct AtikCapabilities * ) malloc ( sizeof ( struct AtikCapabilities ) ) ; //device specific variables
+			AtikCapabilities * devcap = new AtikCapabilities ;
 			const char * devname ; CAMERA_TYPE type ;
 
 			success1 = device -> getCapabilities(&devname, &type, devcap) ;
@@ -270,7 +270,7 @@ int main ( void )
 				cerr << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
-				free(devcap) ;
+				//free(devcap) ;
 				break ;
 			}
 
@@ -317,7 +317,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				free(devcap) ;
+				//free(devcap) ;
 				break ;
 			}
 			success1 = device -> getImage ( picdata , imgsize ) ;
@@ -328,7 +328,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not get data off of the camera. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				free(devcap)  ;
+				//free(devcap)  ;
 				break ;
 			}
 
@@ -343,7 +343,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 				delete [] picdata ;
-				free(devcap)  ;
+				//free(devcap)  ;
 				break ;
 			}
 			out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -359,7 +359,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 				delete [] picdata ;
-				free(devcap) ;
+				//free(devcap) ;
 				break ;
 			}
 			/*****************************/
@@ -373,7 +373,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				delete [] picdata ;
-				free(devcap) ;
+				//free(devcap) ;
 				break ;
 			}
 
@@ -459,7 +459,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 					delete [] picdata ;
-					free(devcap)  ;
+					//free(devcap)  ;
 					break ;
 				}
 				out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -475,7 +475,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 					delete [] picdata ;
-					free(devcap) ;
+					//free(devcap) ;
 					break ;
 				}
 				/*****************************/
@@ -489,7 +489,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 					delete [] picdata ;
-					free(devcap) ;
+					//free(devcap) ;
 					break ;
 				}
 				sync() ;
@@ -501,7 +501,7 @@ int main ( void )
 			} //loop 3
 
 			delete [] picdata ;
-			free(devcap) ;
+			//free(devcap) ;
 		} //loop 2
 
 	} while ( ! done ) ; //loop 1
