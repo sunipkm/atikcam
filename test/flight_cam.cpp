@@ -190,8 +190,12 @@ int main ( void )
 
 	unsigned char firstrun = 1 ;
 	do {
-		if ( ! firstrun )
+		if ( ! firstrun ){
+			#ifdef SK_DEBUG
+			cerr << "Camera not found. Waiting..." << endl ;
+			#endif
 			usleep ( TIME_WAIT_USB ) ; //spend 1 seconds between looking for the camera every subsequent runs
+		}
 		int count = AtikCamera::list(devices,MAX) ;
 		if ( ! count )
 		{
@@ -505,7 +509,7 @@ int main ( void )
 			delete [] picdata ;
 			delete[] devcap ;
 		} //loop 2
-
+		firstrun = 0 ;
 	} while ( ! done ) ; //loop 1
 
 
