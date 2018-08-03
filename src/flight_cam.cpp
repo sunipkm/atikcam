@@ -258,6 +258,7 @@ int main ( void )
 				cerr << __FILE__ << ":" << __LINE__ << ":device->getCapabilities()" << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": Error: Failed to get device capabilities." << endl ;
+				device -> close() ;
 				break ; //get out and fall back to the main loop
 			}
 			else {
@@ -304,6 +305,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				delete[] devcap ;
+				device -> close() ;
 				break ;
 			}
 
@@ -354,6 +356,7 @@ int main ( void )
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
 				delete[] devcap ;
+				device -> close() ;
 				break ;
 			}
 			success1 = device -> getImage ( picdata , imgsize ) ;
@@ -365,6 +368,7 @@ int main ( void )
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not get data off of the camera. Falling back to loop 1." << endl ;
 				delete [] picdata ;
 				delete[] devcap  ;
+				device -> close() ;
 				break ;
 			}
 			#ifdef SK_DEBUG
@@ -384,6 +388,7 @@ int main ( void )
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 				delete [] picdata ;
 				delete[] devcap  ;
+				device -> close() ;
 				break ;
 			}
 			out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -403,6 +408,7 @@ int main ( void )
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 				delete [] picdata ;
 				delete[] devcap ;
+				device -> close() ;
 				break ;
 			}
 			/*****************************/
@@ -424,6 +430,7 @@ int main ( void )
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				delete [] picdata ;
 				delete[] devcap ;
+				device -> close() ;
 				break ;
 			}
 
@@ -527,6 +534,7 @@ int main ( void )
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 					delete [] picdata ;
 					delete[] devcap  ;
+					device -> close() ;
 					break ;
 				}
 				out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -543,6 +551,7 @@ int main ( void )
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 					delete [] picdata ;
 					delete[] devcap ;
+					device -> close() ;
 					break ;
 				}
 				#ifdef SK_DEBUG
@@ -576,7 +585,7 @@ int main ( void )
 				/*********************/
 
 			} //loop 3
-
+			device -> close() ;
 			delete [] picdata ;
 			delete[] devcap ;
 		} //loop 2
@@ -624,7 +633,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 
 	/** If calculated median pixel is within PIX_MEDIAN +/- PIX_GIVE, return current exposure **/
 
-	result = PIX_MEDIAN * exposure / val ;
+	result = ((double)PIX_MEDIAN) * exposure / ((double)val) ;
 
 	if ( result < minShortExposure )
 		return -1 ;
