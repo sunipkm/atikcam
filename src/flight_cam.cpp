@@ -228,6 +228,9 @@ int main ( void )
 			AtikCamera * device = devices[0] ; //first camera is our camera
 
 			success1 = device -> open() ; //open device for access
+			#ifdef SK_DEBUG
+			cerr << "Info: device -> open(): " << success1 ? "Success" : "Failure" << endl ;
+			#endif
 
 			if ( !success1 ){ //if failed
 				#ifdef SK_DEBUG
@@ -245,6 +248,10 @@ int main ( void )
 			const char * devname ; CAMERA_TYPE type ;
 
 			success1 = device -> getCapabilities(&devname, &type, devcap) ;
+
+			#ifdef SK_DEBUG
+			cerr << "Info: getCapabilities: " << success1 ? "Success" : "Failure" << endl ;
+			#endif
 
 			if ( !success1 ){ //if failed
 				#ifdef SK_DEBUG
@@ -324,6 +331,9 @@ int main ( void )
 				{
 					float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
 					templog << (unsigned char) sensor << timenow() << temp << (unsigned char) 0x00 ;
+					#ifdef SK_DEBUG
+					cerr << "Info: Sensor " << sensor << ": Temp: " << temp << " C" << endl ;
+					#endif
 				}	
 			}
 
@@ -357,6 +367,9 @@ int main ( void )
 				delete[] devcap  ;
 				break ;
 			}
+			#ifdef SK_DEBUG
+			cerr << "Info: getImage() -> " << success1 ? "Success" : "Failure" << endl ;
+			#endif
 
 			/** Let's save the data first **/
 			string gfname ;
@@ -374,6 +387,9 @@ int main ( void )
 				break ;
 			}
 			out << tnow << ( float ) exposure << pixelCX << pixelCY ;
+			#ifdef SK_DEBUG
+			cerr << "Info: Wrote tnow -> " << tnow << ", exposure -> " << exposure << endl ;
+			#endif
 
 			for ( unsigned i = 0 ; i < imgsize ; i++ )
 				out << picdata [ i ] ;
@@ -392,7 +408,14 @@ int main ( void )
 			/*****************************/
 
 			/** Exposure Determination Routine **/
+			#ifdef SK_DEBUG
+			cerr << "Info: Calculating new exposure." << endl ;
+			cerr << "Old Exposure -> " << exposure << " ms," << endl ;
+			#endif
 			exposure = find_optimum_exposure(picdata,imgsize,exposure) ;
+			#ifdef SK_DEBUG
+			cerr << "New Exposure -> " << exposure << "ms." << endl ;
+			#endif
 			if ( exposure < 0 ) //too bright
 			{
 				#ifdef SK_DEBUG
@@ -409,12 +432,21 @@ int main ( void )
 			success2 = true ;
 			while ( ( ! done) && success1 && space_left() > 0 )
 			{
+				#ifdef SK_DEBUG
+				cerr << "Info: Entered loop mode." << endl ;
+				#endif
 				double old_exposure = exposure ;
 				/** Taking Picture and logging temperature **/
 				if ( exposure <= maxShortExposure )
 				{
+					#ifdef SK_DEBUG
+					cerr << "Info: Loop: Short exposure mode." << endl ;
+					#endif
 					tnow = timenow() ;
 					success1 = snap_picture(device,pixelCX,pixelCY,picdata,exposure) ;
+					#ifdef SK_DEBUG
+					cerr << "Info: Loop: Short: " << tnow << " obtained image." << endl ;
+					#endif
 					if ( ! success1 )
 					{
 						#ifdef SK_DEBUG
@@ -440,6 +472,9 @@ int main ( void )
 				}
 				else
 				{
+					#ifdef SK_DEBUG
+					cerr << "Info: Loop: Long" << endl ;
+					#endif
 					volatile bool pic_taken = false ;
 					#pragma omp parallel default(shared)//take pictures and temperature readings
 					{
@@ -447,6 +482,9 @@ int main ( void )
 						{	
 							tnow = timenow() ;
 							success1 = snap_picture ( device,pixelCX,pixelCY,picdata,exposure ) ;
+							#ifdef SK_DEBUG
+							cerr << "Info: Loop: Long: " << tnow << " obtained image." << endl ;
+							#endif
 							pic_taken = true ;
 							if ( ! success1 )
 							{
@@ -474,7 +512,9 @@ int main ( void )
 					}
 				}
 				/** End Taking picture and logging temperature **/
-
+				#ifdef SK_DEBUG
+				cerr << "Info: Picture taken. Processing." << endl ;
+				#endif
 				/** Post-processing **/
 				gfname = to_string(tnow) + ".bin.gz" ;
 				out.open(gfname.c_str()) ;
@@ -505,19 +545,29 @@ int main ( void )
 					delete[] devcap ;
 					break ;
 				}
+				#ifdef SK_DEBUG
+				cerr << "Info: Loop: Wrote data to disk." << endl ;
+				#endif
 				/*****************************/
 
 				/** Exposure Determination Routine **/
+				#ifdef SK_DEBUG
+				cerr << "Info: Loop: Old exposure: " << old_exposure << " s" << endl ;
+				#endif
 				exposure = find_optimum_exposure(picdata,imgsize,exposure) ;
+				#ifdef SK_DEBUG
+				cerr << "Info: Loop: New exposure: " << exposure << " s" << endl ;
+				#endif
 				if ( exposure < 0 ) //too bright
 				{
 					#ifdef SK_DEBUG
-					cerr << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
+					cerr << "OpticsError: Too bright surroundings. Setting up minimum exposure." << endl ;
 					#endif
-					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
-					delete [] picdata ;
-					delete[] devcap ;
-					break ;
+					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Setting minimum exposure." << endl ;
+					// delete [] picdata ;
+					// delete[] devcap ;
+					// break ;
+					exposure = minShortExposure ;
 				}
 				sync() ;
 				if ( old_exposure < PIC_TIME_GAP ) //sleep for rest of the time if on shorter than PIC_TIME_GAP (s) exposure
@@ -556,6 +606,10 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 		val = ( picdata[imgsize/2] + picdata[imgsize/2+1] ) * 0.5 ;
 	else
 		val = picdata[imgsize/2] ;
+
+	#ifdef SK_DEBUG
+	cerr << "In " << __FUNCTION__ << ": Median: " << val << endl ;
+	#endif
 
 	#ifndef PIX_MEDIAN
 	#define PIX_MEDIAN 10000.0
