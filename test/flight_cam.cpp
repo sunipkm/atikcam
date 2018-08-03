@@ -336,7 +336,7 @@ int main ( void )
 			/** Let's save the data first **/
 			string gfname ;
 			gfname = to_string(tnow) + ".bin.gz" ;
-			ogzstream out(gfname) ;
+			ogzstream out(gfname.c_str()) ;
 
 			if ( !out.good() )
 			{
@@ -452,7 +452,7 @@ int main ( void )
 
 				/** Post-processing **/
 				gfname = to_string(tnow) + ".bin.gz" ;
-				out.open(gfname) ;
+				out.open(gfname.c_str()) ;
 
 				if ( !out.good() )
 				{
