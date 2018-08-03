@@ -721,12 +721,18 @@ void sys_reboot(void)
 char space_left(void)
 {
 	space_info si = space(curr_dir) ;
+	#ifdef SK_DEBUG
+	cerr << __FUNCTION__ << " : PWD -> " << curr_dir << endl ;
+	#endif
 	long long free_space = (long long) si.available ;
+	#ifdef SK_DEBUG
+	cerr << __FUNCTION__ << " : free_space -> " << free_space << endl ;
+	#endif
 	if ( free_space < 1 * 1024 * 1024 )
 	{
 		perror("Not enough free space. Shutting down.\n") ;
 		sys_poweroff() ;
-		return 1 ;
+		return 0 ;
 	}
-	else return 0 ;
+	else return 1 ;
 }
