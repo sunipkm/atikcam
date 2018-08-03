@@ -15,7 +15,7 @@ volatile const char temperature_comment [] = "Temperature data: File format is: 
 
 volatile const char pixdata_comment [] = "Pic Data: File format is: (long) timestamp + (float) exposure + (unsigned short) pixX + (unsigned short) pixY + (unsigned short [pixX * pixY ]) pixdatastream + (unsigned char) 0x00. The data is compressed in GZip." ;
 
-volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018." ;
+volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be freely redistributed. DOES NOT COME WITH ANY WARRANTY. GPLV2 Licensed. Include THIS VARIABLE in your code." ;
 /****************************/
 
 #include <iostream>
@@ -407,7 +407,7 @@ int main ( void )
 				}
 				else
 				{
-					bool pic_taken = false ;
+					volatile bool pic_taken = false ;
 					#pragma omp parallel default(shared)//take pictures and temperature readings
 					{
 						if ( omp_get_thread_num( ) == 0 ) //first thread to take pictures
