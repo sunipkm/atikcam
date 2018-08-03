@@ -270,7 +270,7 @@ int main ( void )
 				cerr << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
-				//free(devcap) ;
+				delete[] devcap ;
 				break ;
 			}
 
@@ -317,7 +317,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				//free(devcap) ;
+				delete[] devcap ;
 				break ;
 			}
 			success1 = device -> getImage ( picdata , imgsize ) ;
@@ -328,12 +328,13 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not get data off of the camera. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				//free(devcap)  ;
+				delete[] devcap  ;
 				break ;
 			}
 
 			/** Let's save the data first **/
-			char gfname[255] = to_string(tnow) + ".bin.gz" ;
+			char gfname[255] = "" ;
+			gfname = to_string(tnow) + ".bin.gz" ;
 			ogzstream out(gfname) ;
 
 			if ( !out.good() )
@@ -343,7 +344,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 				delete [] picdata ;
-				//free(devcap)  ;
+				delete[] devcap  ;
 				break ;
 			}
 			out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -359,7 +360,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 				delete [] picdata ;
-				//free(devcap) ;
+				delete[] devcap ;
 				break ;
 			}
 			/*****************************/
@@ -373,7 +374,7 @@ int main ( void )
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				delete [] picdata ;
-				//free(devcap) ;
+				delete[] devcap ;
 				break ;
 			}
 
@@ -459,7 +460,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 					delete [] picdata ;
-					//free(devcap)  ;
+					delete[] devcap  ;
 					break ;
 				}
 				out << tnow << ( float ) exposure << pixelCX << pixelCY ;
@@ -475,7 +476,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
 					delete [] picdata ;
-					//free(devcap) ;
+					delete[] devcap ;
 					break ;
 				}
 				/*****************************/
@@ -489,7 +490,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 					delete [] picdata ;
-					//free(devcap) ;
+					delete[] devcap ;
 					break ;
 				}
 				sync() ;
@@ -501,7 +502,7 @@ int main ( void )
 			} //loop 3
 
 			delete [] picdata ;
-			//free(devcap) ;
+			delete[] devcap ;
 		} //loop 2
 
 	} while ( ! done ) ; //loop 1
