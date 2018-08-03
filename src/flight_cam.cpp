@@ -472,6 +472,9 @@ int main ( void )
 						{
 							float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
 							templog << (unsigned char) sensor << timenow() << temp << (unsigned char) 0x00 ;
+							#ifdef SK_DEBUG
+							cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
+							#endif
 						}
 						if ( ! success2 )
 						{
@@ -516,6 +519,9 @@ int main ( void )
 									{
 										float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
 										templog << (unsigned char) sensor << timenow() << temp << (unsigned char) 0x00 ;
+										#ifdef SK_DEBUG
+										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
+										#endif
 									}
 								}
 								usleep ( 1000 ) ;
