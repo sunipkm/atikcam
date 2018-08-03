@@ -625,7 +625,6 @@ char space_left(void)
 			#ifdef SK_DEBUG
 			cerr << "Error: Not enough space." << endl ;
 			#endif
-			errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Not enough space." << endl ;
 			return 0x00 ;
 		}
 		else
