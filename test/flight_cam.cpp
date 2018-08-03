@@ -118,7 +118,7 @@ int main ( void )
 	}
 
 	fsinfo = new struct statvfs ;
-	if ( fstatvfs ( curr_dir , fsinfo ) == 0 )
+	if ( statvfs ( curr_dir , fsinfo ) == 0 )
 	{
 		unsigned long long free_space = fsinfo -> f_bsize * fsinfo -> f_bavail ;
 		if ( free_blocks < 1 * 1024 * 1024 )
@@ -609,7 +609,7 @@ void sys_reboot(void)
 
 char space_left(void)
 {
-	if ( fstatvfs ( curr_dir , fsinfo ) == 0 )
+	if ( statvfs ( curr_dir , fsinfo ) == 0 )
 	{
 		unsigned long long free_space = fsinfo -> f_bsize * fsinfo -> f_bavail ;
 		if ( free_blocks < 1 * 1024 * 1024 )
