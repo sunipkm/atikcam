@@ -729,11 +729,15 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	else
 		direction = 0 ;
 
-	unsigned int coord = floor((100-PERCENTILE)*imgsize/100) ;
+	unsigned int coord = floor((PERCENTILE*(imgsize-1)/100) ;
 	if ( direction )
 		val = picdata[coord] ;
 	else
+	{
+		if ( coord == 0 )
+			coord = 1 ;
 		val = picdata[imgsize-coord] ;
+	}
 
 	#endif //PERCENTILE
 	#endif //MEDIAN
