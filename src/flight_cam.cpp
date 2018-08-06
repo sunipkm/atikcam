@@ -37,6 +37,10 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <omp.h>
 #include <fitsio.h>
 
+#ifdef RPI
+#include <pigpio.h>
+#endif
+
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem ;
 
@@ -189,7 +193,18 @@ int main ( void )
 	sys_reboot() ;
 	#endif
 	*/
-
+	
+	#ifdef RPI
+	bool gpio_status = false ;
+	if ( gpioInitialise() < 0 )
+		cerr << "Warning: pigpio init failed." << endl ;
+	else
+	{
+		gpio_status = true ;
+		gpioSetMode(17,PI_OUTPUT);
+		gpioWrite(17,1) ;
+	}	
+	#endif
 	struct sigaction action[2] ;
 	memset(&action[0], 0, sizeof(struct sigaction)) ;
 	action[0].sa_handler = term ;
@@ -285,7 +300,7 @@ int main ( void )
 	}
 
 	/***************/
-
+	bool cam_off = false ;
 	unsigned char firstrun = 1 ;
 	do {
 		if ( ! firstrun ){
@@ -293,6 +308,14 @@ int main ( void )
 			cerr << "Camera not found. Waiting " << TIME_WAIT_USB / 1000000 << " s..." << endl ;
 			#endif
 			usleep ( TIME_WAIT_USB ) ; //spend 1 seconds between looking for the camera every subsequent runs
+			#ifdef RPI
+			if ( cam_off )
+			{
+				usleep ( 1000000 * 60 ) ;
+				cam_off = false ;
+				gpioWrite(17,1) ;
+			}
+			#endif
 		}
 		int count = AtikCamera::list(devices,MAX) ;
 		#ifdef SK_DEBUG
@@ -412,6 +435,15 @@ int main ( void )
 				for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 				{
 					float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+					#ifdef RPI
+					if ( gpio_status )
+						if ( temp > 40.0 )
+						{
+							gpioWrite(17,0) ;
+							cerr << "Info: Turned off camera." << endl ;
+							cam_off = true ;
+						}
+					#endif
 					templog << (unsigned char) sensor ;
 					put_data(templog,timenow());
 					put_data(templog,temp);
@@ -554,6 +586,16 @@ int main ( void )
 							put_data(templog,timenow());
 							put_data(templog,temp);
 							templog << (unsigned char) 0x00 ;
+							
+							#ifdef RPI
+							if ( gpio_status )
+								if ( temp > 40.0 )
+								{
+									gpioWrite(17,0) ;
+									cerr << "Info: Turned off camera." << endl ;
+									cam_off = true ;
+								}
+							#endif
 
 							/** FOR TESTING ONLY **/
 							#ifdef TESTING
@@ -612,9 +654,14 @@ int main ( void )
 										templog << (unsigned char) 0x00 ;
 
 										/** FOR TESTING ONLY **/
-										#ifdef TESTING
-										if ( temp > 40 )
-											exit(0) ;
+										#ifdef RPI
+										if ( gpio_status )
+											if ( temp > 40.0 )
+											{
+												gpioWrite(17,0) ;
+												cerr << "Info: Turned off camera." << endl ;
+												cam_off = true ;
+											}
 										#endif
 										#ifdef SK_DEBUG
 										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
