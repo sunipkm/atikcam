@@ -712,10 +712,31 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	double result = exposure ;
 	double val ;
 	qsort(picdata,imgsize,sizeof(unsigned short),compare) ;
+
+	#ifdef MEDIAN
 	if ( imgsize && 0x01 )
 		val = ( picdata[imgsize/2] + picdata[imgsize/2+1] ) * 0.5 ;
 	else
 		val = picdata[imgsize/2] ;
+	#endif //MEDIAN
+
+	#ifndef MEDIAN
+	#ifndef PERCENTILE
+	#define PERCENTILE 90.0
+	unsigned char direction ;
+	if ( picdata[0] < picdata[imgsize-1] )
+		direction = 1 ;
+	else
+		direction = 0 ;
+
+	unsigned int coord = floor((100-PERCENTILE)*imgsize/100) ;
+	if ( direction )
+		val = picdata[coord] ;
+	else
+		val = picdata[imgsize-coord] ;
+
+	#endif //PERCENTILE
+	#endif //MEDIAN
 
 	#ifdef SK_DEBUG
 	cerr << "In " << __FUNCTION__ << ": Median: " << val << endl ;
