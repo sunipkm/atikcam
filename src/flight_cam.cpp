@@ -78,6 +78,38 @@ struct statvfs * fsinfo ;
 
 /*************/
 
+/** File System **/
+
+typedef union flb { float f ; char b[sizeof(float)] ; } flb ;
+typedef union shb { unsigned short s ; char b[sizeof(unsigned short)] ; } shb ;
+typedef union llb { long l ; char b[sizeof(long)] ; } llb ;
+
+inline void put_data ( ostream & str , unsigned short val )
+{
+	shb x ;
+	x.s = val ;
+	for ( char i = 0 ; i < sizeof(x.b) ; i++ )
+		str << x.b[i] ;
+}
+
+inline void put_data ( ostream & str , long val )
+{
+	llb x ;
+	x.l = val ;
+	for ( char i = 0 ; i < sizeof(x.b) ; i++ )
+		str << x.b[i] ;
+}
+
+inline void put_data ( ostream & str , float val )
+{
+	flb x ;
+	x.f = val ;
+	for ( char i = 0 ; i < sizeof(x.b) ; i++ )
+		str << x.b[i] ;
+}
+
+/*****************/
+
 void term (int signum)
 {
 	done = 1 ;
@@ -221,7 +253,7 @@ int main ( void )
 		#endif
 		if ( ! count )
 		{
-			camlog << timenow() << (unsigned char) 0x00 ;
+			put_data(camlog, timenow()); camlog << (unsigned char) 0x00 ;
 		}
 		volatile bool success1 , success2 ; //two values used by two threads
 		while ( count-- ) //loop so that I can break whenever ANY error is detected (probably means camera disconnected)
@@ -333,7 +365,17 @@ int main ( void )
 				for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 				{
 					float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
-					templog << (unsigned char) sensor << timenow() << temp << (unsigned char) 0x00 ;
+					templog << (unsigned char) sensor ;
+					put_data(templog,timenow());
+					put_data(templog,temp);
+					templog << (unsigned char) 0x00 ;
+
+					/** FOR TESTING ONLY **/
+					#ifdef TESTING
+					if ( temp > 40 )
+						exit(0) ;
+					#endif
+					/**********************/
 					#ifdef SK_DEBUG
 					cerr << "Info: Sensor " << sensor << ": Temp: " << temp << " C" << endl ;
 					#endif
@@ -392,13 +434,17 @@ int main ( void )
 				device -> close() ;
 				break ;
 			}
-			out << tnow << ( float ) exposure << pixelCX << pixelCY ;
+			//out << tnow << ( float ) exposure << pixelCX << pixelCY ;
+			put_data(out,tnow) ;
+			put_data(out,exposure) ;
+			put_data(out,pixelCX) ;
+			put_data(out,pixelCY) ;
 			#ifdef SK_DEBUG
 			cerr << "Info: Wrote tnow -> " << tnow << ", exposure -> " << exposure << endl ;
 			#endif
 
 			for ( unsigned i = 0 ; i < imgsize ; i++ )
-				out << picdata [ i ] ;
+				put_data(out,picdata [ i ]) ;
 			out.close() ;
 
 			if ( !out.good() )
@@ -471,7 +517,16 @@ int main ( void )
 						for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 						{
 							float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
-							templog << (unsigned char) sensor << timenow() << temp << (unsigned char) 0x00 ;
+							templog << (unsigned char) sensor ;
+							put_data(templog,timenow());
+							put_data(templog,temp);
+							templog << (unsigned char) 0x00 ;
+
+							/** FOR TESTING ONLY **/
+							#ifdef TESTING
+							if ( temp > 40 )
+								exit(0) ;
+							#endif
 							#ifdef SK_DEBUG
 							cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
 							#endif
@@ -518,7 +573,16 @@ int main ( void )
 									for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 									{
 										float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
-										templog << (unsigned char) sensor << timenow() << temp << (unsigned char) 0x00 ;
+										templog << (unsigned char) sensor ;
+										put_data(templog,timenow());
+										put_data(templog,temp);
+										templog << (unsigned char) 0x00 ;
+
+										/** FOR TESTING ONLY **/
+										#ifdef TESTING
+										if ( temp > 40 )
+											exit(0) ;
+										#endif
 										#ifdef SK_DEBUG
 										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
 										#endif
@@ -548,12 +612,16 @@ int main ( void )
 					device -> close() ;
 					break ;
 				}
-				out << tnow << ( float ) exposure << pixelCX << pixelCY ;
+				//out << tnow << ( float ) exposure << pixelCX << pixelCY ;
+				put_data(out,tnow) ;
+				put_data(out,exposure) ;
+				put_data(out,pixelCX) ;
+				put_data(out,pixelCY) ;
 
 				for ( unsigned i = 0 ; i < imgsize ; i++ )
-					out << picdata [ i ] ;
+					put_data(out,picdata[i]) ;
 				out.close() ;
-
+				sync() ;
 				if ( !out.good() )
 				{
 					#ifdef SK_DEBUG
@@ -578,7 +646,7 @@ int main ( void )
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: New exposure: " << exposure << " s" << endl ;
 				#endif
-				if ( exposure < 0 ) //too bright
+				if ( exposure < minShortExposure ) //too bright
 				{
 					#ifdef SK_DEBUG
 					cerr << "OpticsError: Too bright surroundings. Setting up minimum exposure." << endl ;
@@ -589,7 +657,6 @@ int main ( void )
 					// break ;
 					exposure = minShortExposure ;
 				}
-				sync() ;
 				if ( old_exposure < PIC_TIME_GAP ) //sleep for rest of the time if on shorter than PIC_TIME_GAP (s) exposure
 					usleep((long)(PIC_TIME_GAP-old_exposure)*1000000) ;
 				/************************************/
