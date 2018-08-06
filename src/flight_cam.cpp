@@ -5,7 +5,7 @@ volatile const char notice2 [] = "Flight Code written by Sunip K."
 "1. Set exposure to obtain image where the median pixel value is set to 10000 (max 65535)."
 "2. Log temperature of the CCD camera in the log file defined by the compiler option 'TEMPLOG_LOCATION'."
 "3. Continualy keep exposing the CCD at an interval of at least 10s."
-"4. Export (long) timestamp, (double) exposure, (unsigned short) pixX, (unsigned short) pixY , (unsigned short *) pixdatastream, (unsigned char) 0x00 [terminator byte] and save into a file named by the timestamp."
+"4. Save image as <timestamp>.FITS (uncompressed)."
 "5. Apply quicksort on the data, find the median and round exposure time according to the median to integral multiple of minimum short exposure."
 "6. Repeat."
 "7. In case any of the stages return failure, it keeps looking for the camera every second and logs camera missing info in a separate log file." ; 
@@ -13,7 +13,7 @@ volatile const char notice2 [] = "Flight Code written by Sunip K."
 
 volatile const char temperature_comment [] = "Temperature data: File format is: (byte) sensor number + (long) timestamp +(float) temperature + (byte) 0x00 [separator]. The data is NOT compressed. The reason to not compress the data is to simply save processor cycle and context switches. Also that data is not supposed to be oversized." ;
 
-volatile const char pixdata_comment [] = "Pic Data: File format is: (long) timestamp + (float) exposure + (unsigned short) pixX + (unsigned short) pixY + (unsigned short [pixX * pixY ]) pixdatastream + (unsigned char) 0x00. The data is compressed in GZip." ;
+volatile const char pixdata_comment [] = "Pic Data: FITS file chosen in favor of portability. Includes as keys timestamp, image x and y dimensions, exposure time (float)." ;
 
 volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be freely redistributed. DOES NOT COME WITH ANY WARRANTY. GPLV2 Licensed. Include THIS VARIABLE in your code." ;
 /****************************/
@@ -35,11 +35,10 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <sys/statvfs.h>
 #include <limits.h>
 #include <omp.h>
+#include <fitsio.h>
 
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem ;
-
-#include "gzstream.h"
 
 #include "atikccdusb.h"
 
@@ -76,6 +75,10 @@ char curr_dir[PATH_MAX] ;
 
 struct statvfs * fsinfo ;
 
+ofstream templog ;
+ofstream camlog ;
+ofstream errlog ;
+
 /*************/
 
 /** File System **/
@@ -106,6 +109,42 @@ inline void put_data ( ostream & str , float val )
 	x.f = val ;
 	for ( char i = 0 ; i < sizeof(x.b) ; i++ )
 		str << x.b[i] ;
+}
+
+typedef struct image {
+	long tnow ;
+	float exposure ;
+	unsigned int x ;
+	unsigned int y ;
+	unsigned short * picdata ;
+} image ;
+
+int save(const char *fileName , image * data) {
+  fitsfile *fptr;
+  int status = 0, bitpix = USHORT_IMG, naxis = 2;
+  int bzero = 32768, bscale = 1;
+  long naxes[2] = { (long)data->x, (long)data->y };
+  if (!fits_create_file(&fptr, fileName, &status)) {
+    fits_create_img(fptr, bitpix, naxis, naxes, &status);
+    fits_write_key(fptr, TSTRING, "PROGRAM", (void *)"sk_flight", NULL, &status);
+    fits_write_key(fptr, TUSHORT, "BZERO", &bzero, NULL, &status);
+    fits_write_key(fptr, TUSHORT, "BSCALE", &bscale, NULL, &status);
+    fits_write_key(fptr, TFLOAT, "EXPOSURE", &(data->exposure), NULL, &status);
+    fits_write_key(fptr, TLONG, "TIMESTAMP", &(data->tnow),NULL, &status);
+    long fpixel[] = { 1, 1 };
+    fits_write_pix(fptr, TUSHORT, fpixel, data->x*data->y, data->picdata, &status);
+    fits_close_file(fptr, &status);
+    #ifdef SK_DEBUG
+    cerr << endl << "saved to " << fileName << endl << endl;
+    #endif
+  }
+  else {
+	  #ifdef SK_DEBUG
+	  cerr << "Error: " << __FUNCTION__ << " : Could not save image." << endl ;
+	  #endif
+	  errlog << "Error: " << __FUNCTION__ << " : Could not save image." << endl ;
+  }
+  return status ;
 }
 
 /*****************/
@@ -141,6 +180,15 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 int main ( void )
 {
 	/** Interrupt Handlers **/
+	
+	/*
+	#ifdef SYS_POWEROFF
+	sys_poweroff() ;
+	#endif
+	#ifdef SYS_REBOOT
+	sys_reboot() ;
+	#endif
+	*/
 
 	struct sigaction action[2] ;
 	memset(&action[0], 0, sizeof(struct sigaction)) ;
@@ -191,7 +239,6 @@ int main ( void )
 	/********************************************/
 
 	/** Atik Camera Temperature Log **/
-	ofstream templog ;
 	#ifndef TEMPLOG_LOCATION
 	#define TEMPLOG_LOCATION "/home/sunip/temp_log.bin"
 	#endif
@@ -420,10 +467,16 @@ int main ( void )
 
 			/** Let's save the data first **/
 			string gfname ;
-			gfname = to_string(tnow) + ".bin.gz" ;
-			ogzstream out(gfname.c_str()) ;
+			gfname = to_string(tnow) + ".FITS" ;
+			image * imgdata = new image ;
+			
+			imgdata -> tnow = tnow ;
+			imgdata -> x = pixelCX ;
+			imgdata -> y = pixelCY ;
+			imgdata -> exposure = exposure ;
+			imgdata -> picdata = picdata ;
 
-			if ( !out.good() )
+			if ( save(gfname.c_str(),imgdata) )
 			{
 				#ifdef SK_DEBUG
 				cerr << "Error: Could not open filestream to write data to." << endl ;
@@ -434,30 +487,10 @@ int main ( void )
 				device -> close() ;
 				break ;
 			}
-			//out << tnow << ( float ) exposure << pixelCX << pixelCY ;
-			put_data(out,tnow) ;
-			put_data(out,exposure) ;
-			put_data(out,pixelCX) ;
-			put_data(out,pixelCY) ;
 			#ifdef SK_DEBUG
 			cerr << "Info: Wrote tnow -> " << tnow << ", exposure -> " << exposure << endl ;
 			#endif
 
-			for ( unsigned i = 0 ; i < imgsize ; i++ )
-				put_data(out,picdata [ i ]) ;
-			out.close() ;
-
-			if ( !out.good() )
-			{
-				#ifdef SK_DEBUG
-				cerr << "Error: Something went wrong when writing the first exposure." << endl ;
-				#endif
-				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
-				delete [] picdata ;
-				delete[] devcap ;
-				device -> close() ;
-				break ;
-			}
 			/*****************************/
 
 			/** Exposure Determination Routine **/
@@ -598,10 +631,16 @@ int main ( void )
 				cerr << "Info: Picture taken. Processing." << endl ;
 				#endif
 				/** Post-processing **/
-				gfname = to_string(tnow) + ".bin.gz" ;
-				out.open(gfname.c_str()) ;
+				gfname = to_string(tnow) + ".FITS" ;
+				image * imgdata = new image ;
+			
+				imgdata -> tnow = tnow ;
+				imgdata -> x = pixelCX ;
+				imgdata -> y = pixelCY ;
+				imgdata -> exposure = exposure ;
+				imgdata -> picdata = picdata ;
 
-				if ( !out.good() )
+				if ( save(gfname.c_str(),imgdata) )
 				{
 					#ifdef SK_DEBUG
 					cerr << "Error: Could not open filestream to write data to." << endl ;
@@ -612,27 +651,8 @@ int main ( void )
 					device -> close() ;
 					break ;
 				}
-				//out << tnow << ( float ) exposure << pixelCX << pixelCY ;
-				put_data(out,tnow) ;
-				put_data(out,exposure) ;
-				put_data(out,pixelCX) ;
-				put_data(out,pixelCY) ;
-
-				for ( unsigned i = 0 ; i < imgsize ; i++ )
-					put_data(out,picdata[i]) ;
-				out.close() ;
 				sync() ;
-				if ( !out.good() )
-				{
-					#ifdef SK_DEBUG
-					cerr << "Error: Something went wrong when writing the first exposure." << endl ;
-					#endif
-					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not succesfully write the first image to disk." << endl ;
-					delete [] picdata ;
-					delete[] devcap ;
-					device -> close() ;
-					break ;
-				}
+				
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: Wrote data to disk." << endl ;
 				#endif
@@ -777,20 +797,34 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 	return success ;
 }
 
+#ifdef ENABLE_PWOFF
 void sys_poweroff(void)
 {
 	sync() ;
 	setuid(0) ;
 	reboot(LINUX_REBOOT_CMD_POWER_OFF) ;
 }
+#else
+void sys_poweroff(void)
+{	
+	cerr << "Info: Poweroff instruction received!" << endl ;
+	exit(0);
+}
+#endif //ENABLE_PWOFF
 
+#ifdef ENABLE_REBOOT
 void sys_reboot(void)
 {
 	sync() ;
 	setuid(0) ;
 	reboot(RB_AUTOBOOT) ;
 }
-
+#else
+void sys_reboot(void)
+{
+	cerr << "Info: Reboot instruction received!" << endl ;
+}
+#endif //ENABLE_REBOOT
 char space_left(void)
 {
 	space_info si = space(curr_dir) ;
