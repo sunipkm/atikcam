@@ -729,7 +729,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	else
 		direction = 0 ;
 
-	unsigned int coord = floor((PERCENTILE*(imgsize-1)/100.0) ;
+	unsigned int coord = floor((PERCENTILE*(imgsize-1)/100.0)) ;
 	if ( direction )
 		val = picdata[coord] ;
 	else
