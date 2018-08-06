@@ -729,7 +729,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	else
 		direction = 0 ;
 
-	unsigned int coord = floor((PERCENTILE*(imgsize-1)/100) ;
+	unsigned int coord = floor((PERCENTILE*(imgsize-1)/100.0) ;
 	if ( direction )
 		val = picdata[coord] ;
 	else
@@ -738,6 +738,16 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 			coord = 1 ;
 		val = picdata[imgsize-coord] ;
 	}
+
+	#ifdef SK_DEBUG
+	cerr << "Info: " << __FUNCTION__ << "Direction: " << direction << ", Coordinate: " << coord << endl ;
+	cerr << "Info: " << __FUNCTION__ << "10 values around the coordinate: " << endl ;
+	unsigned int lim2 = imgsize - coord > 3 ? coord + 4 : imgsize - 1 ;
+	unsigned int lim1 = lim2 - 10 ;
+	for ( int i = lim1 ; i < lim2 ; i++ )
+		cerr << picdata[i] << " ";
+	cerr << endl ;
+	#endif
 
 	#endif //PERCENTILE
 	#endif //MEDIAN
