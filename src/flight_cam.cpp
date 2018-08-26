@@ -116,7 +116,7 @@ inline void put_data ( ostream & str , float val )
 }
 
 typedef struct image {
-	long tnow ;
+	unsigned long long int tnow ;
 	float exposure ;
 	unsigned int x ;
 	unsigned int y ;
@@ -134,7 +134,7 @@ int save(const char *fileName , image * data) {
     fits_write_key(fptr, TUSHORT, "BZERO", &bzero, NULL, &status);
     fits_write_key(fptr, TUSHORT, "BSCALE", &bscale, NULL, &status);
     fits_write_key(fptr, TFLOAT, "EXPOSURE", &(data->exposure), NULL, &status);
-    fits_write_key(fptr, TLONG, "TIMESTAMP", &(data->tnow),NULL, &status);
+    fits_write_key(fptr, TULONGLONG, "TIMESTAMP", &(data->tnow),NULL, &status);
     long fpixel[] = { 1, 1 };
     fits_write_pix(fptr, TUSHORT, fpixel, data->x*data->y, data->picdata, &status);
     fits_close_file(fptr, &status);
@@ -171,7 +171,7 @@ int compare ( const void * a , const void * b)
 	return ( * ( (unsigned short *) a ) - * ( (unsigned short *) b ) ) ;
 }
 
-long timenow()
+unsigned long long int timenow()
 {
 	return ((std::chrono::duration_cast<std::chrono::milliseconds>((std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now())).time_since_epoch())).count()) ;
 }
@@ -465,7 +465,7 @@ int main ( void )
 			#ifdef SK_DEBUG
 			cerr << "Info: Preparing to take first exposure." << endl ;
 			#endif
-			long tnow = timenow() ; //measured time
+			unsigned long long int tnow = timenow() ; //measured time
 			success1 = device -> readCCD ( 0 , 0 , pixelCX , pixelCY , 1 , 1 , maxShortExposure ) ;
 			#ifdef SK_DEBUG
 			cerr << "Info: Exposure Complete. Returned: " << success1 << endl ;
