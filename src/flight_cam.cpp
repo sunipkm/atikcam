@@ -639,15 +639,16 @@ int main ( void )
 								errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not snap picture." << endl ;
 							}
 						}
-						if ( omp_get_thread_num( ) == 1 ) //second thread to take images
+						if ( omp_get_thread_num( ) == 1 ) //second thread to take temperature
 						{
+							float temp ;
 							while(!pic_taken)
 							{
 								if ( templogstat )
 								{
 									for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 									{
-										float temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+										temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
 										templog << (unsigned char) sensor ;
 										put_data(templog,timenow());
 										put_data(templog,temp);
@@ -663,13 +664,16 @@ int main ( void )
 												cam_off = true ;
 											}
 										#endif
-										#ifdef SK_DEBUG
-										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
-										#endif
+										//#ifdef SK_DEBUG
+										//cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
+										//#endif
 									}
 								}
 								usleep ( 1000 ) ;
 							}
+							#ifdef SK_DEBUG
+							cerr << "Info: Sensor: 1" << " Temp: " << temp << " C" << endl ;
+							#endif
 						}
 					}
 				}
