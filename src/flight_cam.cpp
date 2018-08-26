@@ -89,7 +89,7 @@ ofstream errlog ;
 
 typedef union flb { float f ; char b[sizeof(float)] ; } flb ;
 typedef union shb { unsigned short s ; char b[sizeof(unsigned short)] ; } shb ;
-typedef union llb { long l ; char b[sizeof(long)] ; } llb ;
+typedef union llb { unsigned long long int l ; char b[sizeof(long)] ; } llb ;
 
 inline void put_data ( ostream & str , unsigned short val )
 {
@@ -99,7 +99,7 @@ inline void put_data ( ostream & str , unsigned short val )
 		str << x.b[i] ;
 }
 
-inline void put_data ( ostream & str , long val )
+inline void put_data ( ostream & str , unsigned long long int val )
 {
 	llb x ;
 	x.l = val ;
