@@ -57,7 +57,7 @@ using namespace boost::filesystem ;
 #endif
 
 #ifndef PIX_MEDIAN
-#define PIX_MEDIAN 10000.0
+#define PIX_MEDIAN 30000.0
 #endif
 
 #ifndef PIX_GIVE
@@ -804,7 +804,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	#endif
 
 	#ifndef PIX_MEDIAN
-	#define PIX_MEDIAN 20000.0
+	#define PIX_MEDIAN 40000.0
 	#endif
 
 	#ifndef PIX_GIVE
