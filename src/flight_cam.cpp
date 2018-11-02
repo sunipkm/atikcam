@@ -64,6 +64,10 @@ using namespace boost::filesystem ;
 #define PIX_GIVE 5000.0
 #endif
 
+#ifndef PIX_BIN
+#define PIX_BIN 1
+#endif
+
 using namespace std ;
 
 /** Globals **/
@@ -74,6 +78,8 @@ volatile sig_atomic_t done = 0 ; //interrupt handler
 
 double minShortExposure = -1 ;
 double maxShortExposure = -1 ;
+
+unsigned pix_bin = PIX_BIN ;
 
 char curr_dir[PATH_MAX] ;
 
@@ -129,6 +135,7 @@ int save(const char *fileName , image * data) {
   int bzero = 32768, bscale = 1;
   long naxes[2] = { (long)data->x, (long)data->y };
   if (!fits_create_file(&fptr, fileName, &status)) {
+	fits_set_compression_type(fptr, RICE_1, &status) ;
     fits_create_img(fptr, bitpix, naxis, naxes, &status);
     fits_write_key(fptr, TSTRING, "PROGRAM", (void *)"sk_flight", NULL, &status);
     fits_write_key(fptr, TUSHORT, "BZERO", &bzero, NULL, &status);
@@ -389,6 +396,12 @@ int main ( void )
 			           minShortExposure = devcap -> minShortExposure ;
 			           maxShortExposure = devcap -> maxShortExposure ;
 
+			if ( pix_bin > maxBinX || pix_bin > maxBinY )
+				pix_bin = maxBinX < maxBinY ? maxBinX : maxBinY ; //smaller of the two 
+
+			unsigned       width  = device -> imageWidth(pixelCX,pix_bin) ;
+			unsigned       height = device -> imageHeight(pixelCY,pix_bin) ; 
+
 			#ifdef SK_DEBUG
 			cerr << "Device: AtikCapabilities:" << endl ;
 			cerr << "Pixel Count X: " << pixelCX << "; Pixel Count Y: " << pixelCY << endl ;
@@ -399,6 +412,8 @@ int main ( void )
 			cerr << "Long Exposure Mode Supported: " << longExpMode << endl ;
 			cerr << "Minimum Short Exposure: " << minShortExposure << " ms" << endl ;
 			cerr << "Maximum Short Exposure: " << maxShortExposure << " ms" << endl ;
+			cerr << "Binned X width: " << width << endl ;
+			cerr << "Binned Y height: " << height << endl ;
 			#endif //SK_DEBUG
 
 			if ( minShortExposure > maxShortExposure )
@@ -416,7 +431,7 @@ int main ( void )
 
 			unsigned short * picdata = NULL ;
 
-			unsigned imgsize = pixelCX*pixelCY ;
+			unsigned imgsize = width * height ;
 
 			picdata   = new unsigned short[imgsize] ;
 
@@ -466,7 +481,7 @@ int main ( void )
 			cerr << "Info: Preparing to take first exposure." << endl ;
 			#endif
 			unsigned long long int tnow = timenow() ; //measured time
-			success1 = device -> readCCD ( 0 , 0 , pixelCX , pixelCY , 1 , 1 , maxShortExposure ) ;
+			success1 = device -> readCCD ( 0 , 0 , pixelCX , pixelCY , pix_bin , pix_bin , maxShortExposure ) ;
 			#ifdef SK_DEBUG
 			cerr << "Info: Exposure Complete. Returned: " << success1 << endl ;
 			#endif
@@ -499,12 +514,12 @@ int main ( void )
 
 			/** Let's save the data first **/
 			string gfname ;
-			gfname = to_string(tnow) + ".FITS" ;
+			gfname = to_string(tnow) + ".fit[compress]" ;
 			image * imgdata = new image ;
 			
 			imgdata -> tnow = tnow ;
-			imgdata -> x = pixelCX ;
-			imgdata -> y = pixelCY ;
+			imgdata -> x = width ;
+			imgdata -> y = height ;
 			imgdata -> exposure = exposure ;
 			imgdata -> picdata = picdata ;
 
@@ -682,12 +697,12 @@ int main ( void )
 				cerr << "Info: Picture taken. Processing." << endl ;
 				#endif
 				/** Post-processing **/
-				gfname = to_string(tnow) + ".FITS" ;
+				gfname = to_string(tnow) + ".fit[compress]" ;
 				image * imgdata = new image ;
 			
 				imgdata -> tnow = tnow ;
-				imgdata -> x = pixelCX ;
-				imgdata -> y = pixelCY ;
+				imgdata -> x = width ;
+				imgdata -> y = height ;
 				imgdata -> exposure = exposure ;
 				imgdata -> picdata = picdata ;
 
@@ -698,7 +713,7 @@ int main ( void )
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
 					delete [] picdata ;
-					delete[] devcap  ;
+					delete [] devcap  ;
 					device -> close() ;
 					break ;
 				}
@@ -841,7 +856,7 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 		#ifdef SK_DEBUG
 		cerr << "Info: Exposure time less than max short exposure, opting for short exposure mode." << endl ;
 		#endif
-		success = device -> readCCD(0,0,pixX,pixY,1,1,exposure) ;
+		success = device -> readCCD(0,0,pixX,pixY,pix_bin,pix_bin,exposure) ;
 		if ( ! success )
 		{	
 			#ifdef SK_DEBUG
@@ -868,7 +883,7 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 		cerr << "Info: Long exposure delay set to " << delay << " ms." << endl ;
 		#endif
 		usleep(delay) ;
-		success = device -> readCCD(0,0,pixX,pixY,1,1) ;
+		success = device -> readCCD(0,0,pixX,pixY,pix_bin,pix_bin) ;
 		if ( ! success )
 		{	
 			#ifdef SK_DEBUG
@@ -879,7 +894,9 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 
 	}
 	else return false ;
-	success = device -> getImage(data,pixX*pixY) ;
+	unsigned width = device -> imageWidth(pixX,pix_bin) ;
+	unsigned height = device -> imageHeight(pixY,pix_bin) ;
+	success = device -> getImage(data,width*height) ;
 	return success ;
 }
 
