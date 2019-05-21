@@ -6,6 +6,9 @@ import time
 import datetime
 import astropy.io.fits as pf
 
+lib = c.cdll.LoadLibrary('libatik.so')
+lib.debug(c.c_bool(True))
+
 def timenow():
     return int((datetime.datetime.now().timestamp()*1e3))
 
@@ -85,7 +88,7 @@ class AtikCam:
                 print("Short exposure successful")
 
         width = lib.imageWidth(self.subX,self.binX)
-        height = lib.imageHeight(self.subY,binY)
+        height = lib.imageHeight(self.subY,self.binY)
         success = lib.getImage(c.byref(self.data.ctypes.data),width*height)
         self.width = width
         self.height = height
@@ -93,8 +96,8 @@ class AtikCam:
             self.temperature = c.c_float()
             lib.getTemperatureSensorStatus(1,c.byref(self.temperature))
         if success:
-            return self.data[0:width*height].reshape(height,width)
             self.lastExpSuccess = True
+            return self.data[0:width*height].reshape(height,width)
         else:
             return np.zeros((height,width),dtype=np.uint16)
 
@@ -124,7 +127,7 @@ class AtikCam:
     def save(self):
         if self.lastExpSuccess == False:
             return
-        hdr = pf.header()
+        hdr = pf.Header()
         hdr['Name']="Atik 414EX"
         hdr['EXPOSURE']=self.exposure
         hdr['TIMESTAMP']=self.timestamp
