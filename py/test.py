@@ -83,13 +83,13 @@ class AtikCam:
                 print("Read from CCD")
 
         else:
-            success = lib.readCCD_short(self.offsetX,self.offsetY,self.subX,self.subY,self.binX,self.binY,self.exposure)
+            success = lib.readCCD_short(self.offsetX,self.offsetY,self.subX,self.subY,self.binX,self.binY,c.c_double(self.exposure))
             if success:
                 print("Short exposure successful")
 
         width = lib.imageWidth(self.subX,self.binX)
         height = lib.imageHeight(self.subY,self.binY)
-        success = lib.getImage(c.byref(self.data.ctypes.data),width*height)
+        success = lib.getImage(c.c_void_p((self.data).ctypes.data),c.c_uint(width*height))
         self.width = width
         self.height = height
         if self.tempSensorCount:
@@ -105,7 +105,7 @@ class AtikCam:
         if self.lastExpSuccess == False:
             return
         result = self.exposure
-        data = np.sort(self.data[self.width*self.height]) #small to large
+        data = np.sort(self.data[0:self.width*self.height]) #small to large
         PERCENTILE = 0.9 #0.5 for median
         coord = int(PERCENTILE*(data.shape[0]-1))
         val = data[coord]
@@ -150,9 +150,11 @@ def animate(i):
     data = cam.snap()
     exposure = cam.exposure
     timestamp = cam.timestamp
+    cam.optimumExposure()
+    #cam.save()
     fig.suptitle("Timestamp: %s ms, Exposure: %f s" % ( datetime.datetime.fromtimestamp(timestamp*1e-3), exposure))
     x0 = 0 ; x1 = 1260
-    xl = (x1 - x0)/4
+    xl = (x1 - x0)//4
     img = np.zeros((data[110:950,0:1260].shape[0],data[110:950,0:1260].shape[1],3),dtype=np.uint8)
     col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xaa,0x00,0x00),(0xff,0x00,0x00))
     for k in range(4):
