@@ -140,7 +140,7 @@ fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s ms, Exposure: %f s" % ( datetime.datetime.fromtimestamp(timenow()*1e-3), 3.0))
 extent = 20,1260,110,950
 
-im = plt.imshow((np.zeros((a[0].data[110:950,0:1260].shape[0],a[0].data[110:950,0:1260].shape[1],3),dtype=np.uint8))+0xff, animated=True,extent=extent)
+im = plt.imshow(np.zeros((840,1240,3),dtype=np.uint8)+0xff, animated=True,extent=extent)
 
 def animate(i):
     global cam
