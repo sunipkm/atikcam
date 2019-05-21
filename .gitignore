@@ -41,7 +41,7 @@ cam
 .Trashes
 ehthumbs.db
 Thumbs.db
-
+Icon*
 # Program Generated Files #
 ###########################
 *.fits
