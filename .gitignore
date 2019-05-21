@@ -47,3 +47,12 @@ Thumbs.db
 *.fits
 *.png
 *.dat
+
+
+# VSCode #
+##########################
+.vscode
+*.ini
+*.deb
+
+lib
