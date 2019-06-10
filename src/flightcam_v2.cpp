@@ -182,7 +182,7 @@ int save(const char *fileName , image * data) {
 #else
 int save(const char *fileName, image* data)
 {
-	return true;
+	return false;
 }
 #endif
 /* End saving FITS Image */
