@@ -849,7 +849,6 @@ void * camera_thread(void *t)
                 	if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
                 	{
                 	    cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
-                	    sockstat = false ;
                 	}
                 	serv_addr.sin_family = AF_INET ;
                		serv_addr.sin_port = htons(PORT) ;
