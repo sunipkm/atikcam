@@ -852,16 +852,16 @@ void * camera_thread(void *t)
                         cerr << "Camera thread: DataVis: Invalid/Unsupported address" << endl ;
                         break ;
                     }
-                    struct sockaddr * serv_addr_pointer = &serv_addr ;
-                    if (connect(sock, serv_addr_pointer, sizeof(serv_addr)) < 0)
+                    // /struct sockaddr * serv_addr_pointer = &serv_addr ;
+                    if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
                     {
                         cerr << "Camera thread: DataVis: Connection failed" << endl ;
                         break ;
                     }
                     send(sock,imgdata,sizeof(image),0);
                     cerr << "Camera thread: DataVis: Data sent" << endl ;
-                    valread = read(sock,buffer,1024);
-                    cerr << "Camera thread: DataVis: " << buffer << endl ;
+                    valread = read(sock,recv_buf,1024);
+                    cerr << "Camera thread: DataVis: " << recv_buf << endl ;
                     break ;
                 }
                 #endif //DATAVIS
@@ -936,8 +936,8 @@ void * housekeeping_thread(void *t)
 int main ( void )
 {
     /* Setup GPIO */
+	bool gpio_status = false;
     #ifdef RPI
-    bool gpio_status = false;
     if ( gpioInitialise() < 0 ){
         perror("Main: GPIO Init") ;
         cerr << "Warning: pigpio init failed." << endl ;
