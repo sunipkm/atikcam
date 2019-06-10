@@ -21,7 +21,9 @@ class image(c.Structure):
         ('ccdtemp',c.c_short),
         ('boardtemp',c.c_short),
         ('chassistemp',c.c_short),
-        ('picdata',1449072*c.c_ushort)
+        ('picdata',1449072*c.c_ushort),
+        ('unused',6*c.c_ubyte),
+        ('unused2',1792*c.c_ubyte)
     ]
 
 s = socket.socket()
@@ -39,13 +41,14 @@ im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),animated=True)
 
 def animate(i):
     global s
-    ct,addr = s.accept()
-    print('Got connection from ', addr)
-    val = ct.recv(c.sizeof(image))
-    print(c.sizeof(image),len(val))
+    val = ''.encode('utf-8')
+    for i in range(708):
+        ct,addr = s.accept()
+        print('Got connection from ', addr)
+        val += ct.recv(4096)
+        ct.send('Data received'.encode('utf-8'))
     a = image()
     c.memmove(c.addressof(a),val,c.sizeof(image))
-    ct.send('Data received'.encode('utf-8'))
     img = np.array(a.picdata[0:a.imgsize])
     data = np.reshape(img,(a.pixy,a.pixx))
     print(a.pixx,a.pixy)

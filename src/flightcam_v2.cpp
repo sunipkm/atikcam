@@ -119,7 +119,14 @@ typedef struct image {
     short boardtemp ;
     short chassistemp ;
 	unsigned short picdata[1449072] ;
-} image ;
+	unsigned char unused[6] ; //first set of padding
+	unsigned char unused2[1792] ; //padding to round off to 708*4096 bytes
+} image ; //size 708*4096
+
+typedef union{
+	image a ;
+	unsigned char buf[708][4096];
+} packetize ;
 /* End internal data structure */
 
 /* Housekeeping Log in binary */
@@ -831,22 +838,22 @@ void * camera_thread(void *t)
                 imgdata -> boardtemp = boardtemp ;
                 imgdata -> chassistemp = chassistemp ;
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
-
+				packetize p ;
+				p.a = *imgdata;
                 /* Client socket programming to send data to server for viewing */
                 #ifdef DATAVIS
                 int sock = 0 , valread = 0 ;
                 struct sockaddr_in serv_addr ;
                 char recv_buf[1024] = {0} ;
-                bool sockstat = true ;
-                if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
-                {
-                    cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
-                    sockstat = false ;
-                }
-                serv_addr.sin_family = AF_INET ;
-                serv_addr.sin_port = htons(PORT) ;
+                for ( int i = 0 ; i < 708 ; i++ ){
+                	if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
+                	{
+                	    cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
+                	    sockstat = false ;
+                	}
+                	serv_addr.sin_family = AF_INET ;
+               		serv_addr.sin_port = htons(PORT) ;
 
-                while (sockstat) {
                     if(inet_pton(AF_INET,SERVER_IP,&serv_addr.sin_addr)<=0)
                     {
                         cerr << "Camera thread: DataVis: Invalid/Unsupported address" << endl ;
@@ -858,13 +865,12 @@ void * camera_thread(void *t)
                         cerr << "Camera thread: DataVis: Connection failed" << endl ;
                         break ;
                     }
-                    ssize_t numsent = send(sock,imgdata,sizeof(image),0);
-					cerr << "Camera thread: DataVis: Size of sent data: " << sizeof(image) << endl ;
+                    ssize_t numsent = send(sock,&p.buf[i],4096,0);
+					cerr << "Camera thread: DataVis: Size of sent data: " << 4096 << endl ;
 					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
                     cerr << "Camera thread: DataVis: Data sent" << endl ;
                     valread = read(sock,recv_buf,1024);
                     cerr << "Camera thread: DataVis: " << recv_buf << endl ;
-                    break ;
                 }
                 #endif //DATAVIS
                 /* End client socket programming to send data to server for viewing */
