@@ -115,10 +115,10 @@ typedef struct image {
 	unsigned short pixx ; //pixel x
 	unsigned short pixy ; //pixel y
     unsigned int imgsize ; //pixx*pixy
-    int ccdtemp ; // temp in C = temp/100
-    int boardtemp ;
-    int chassistemp ;
-	unsigned short picdata[2097152] ;
+    short ccdtemp ; // temp in C = temp/100
+    short boardtemp ;
+    short chassistemp ;
+	unsigned short picdata[1449072] ;
 } image ;
 /* End internal data structure */
 
@@ -153,6 +153,7 @@ inline void put_data ( ostream & str , float val )
 /* End Housekeeping log */
 
 /* Saving FITS Image */
+#ifndef NOSAVEFITS
 int save(const char *fileName , image * data) {
   fitsfile *fptr;
   int status = 0, bitpix = USHORT_IMG, naxis = 2;
@@ -165,7 +166,7 @@ int save(const char *fileName , image * data) {
     fits_write_key(fptr, TUSHORT, "BZERO", &bzero, NULL, &status);
     fits_write_key(fptr, TUSHORT, "BSCALE", &bscale, NULL, &status);
     fits_write_key(fptr, TFLOAT, "EXPOSURE", &(data->exposure), NULL, &status);
-    fits_write_key(fptr, TINT, "TEMP", &(data->ccdtemp), NULL, &status);
+    fits_write_key(fptr, TSHORT, "TEMP", &(data->ccdtemp), NULL, &status);
     fits_write_key(fptr, TULONGLONG, "TIMESTAMP", &(data->tnow),NULL, &status);
     long fpixel[] = { 1, 1 };
     fits_write_pix(fptr, TUSHORT, fpixel, data->imgsize, data->picdata, &status);
@@ -178,6 +179,12 @@ int save(const char *fileName , image * data) {
   }
   return status ;
 }
+#else
+int save(const char *fileName, image* data)
+{
+	return true;
+}
+#endif
 /* End saving FITS Image */
 
 /* Interrupt handler */
