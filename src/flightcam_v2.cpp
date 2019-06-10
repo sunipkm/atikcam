@@ -858,7 +858,9 @@ void * camera_thread(void *t)
                         cerr << "Camera thread: DataVis: Connection failed" << endl ;
                         break ;
                     }
-                    send(sock,imgdata,sizeof(image),0);
+                    ssize_t numsent = send(sock,imgdata,sizeof(image),0);
+					cerr << "Camera thread: DataVis: Size of sent data: " << sizeof(image) << endl ;
+					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
                     cerr << "Camera thread: DataVis: Data sent" << endl ;
                     valread = read(sock,recv_buf,1024);
                     cerr << "Camera thread: DataVis: " << recv_buf << endl ;

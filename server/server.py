@@ -42,6 +42,7 @@ def animate(i):
     ct,addr = s.accept()
     print('Got connection from ', addr)
     val = ct.recv(c.sizeof(image))
+    print(c.sizeof(image),len(val))
     a = image()
     c.memmove(c.addressof(a),val,c.sizeof(image))
     ct.send('Data received'.encode('utf-8'))
