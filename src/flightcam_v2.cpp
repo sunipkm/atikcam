@@ -1015,7 +1015,7 @@ int main ( void )
         exit(-1) ; 
     }
 
-    rc1 = pthread_create(&thread0,&attr,housekeeping_thread,(void *)1);
+    rc1 = pthread_create(&thread1,&attr,housekeeping_thread,(void *)1);
     if (rc1){
         cerr << "Main: Error: Unable to create housekeeping thread " << rc1 << endl ;
         exit(-1) ; 
@@ -1034,7 +1034,7 @@ int main ( void )
     rc1 = pthread_join(thread1,&status) ;
     if (rc1)
     {
-        cerr << "Main: Error: Unable to join camera thread" << rc1 << endl ;
+        cerr << "Main: Error: Unable to join housekeeping thread" << rc1 << endl ;
         exit(-1);
     }
     cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
