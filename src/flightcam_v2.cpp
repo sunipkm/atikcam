@@ -845,13 +845,13 @@ void * camera_thread(void *t)
                 int sock = 0 , valread = 0 ;
                 struct sockaddr_in serv_addr ;
                 char recv_buf[32] = {0} ;
-				if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
-                {
-                    cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
-                }
-                serv_addr.sin_family = AF_INET ;
-               	serv_addr.sin_port = htons(PORT) ;
                 for ( int i = 0 ; i < 708*4 ; i++ ){
+					if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
+                	{
+                    	cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
+                	}
+                	serv_addr.sin_family = AF_INET ;
+               		serv_addr.sin_port = htons(PORT) ;
                     if(inet_pton(AF_INET,SERVER_IP,&serv_addr.sin_addr)<=0)
                     {
                         cerr << "Camera thread: DataVis: Invalid/Unsupported address" << endl ;
