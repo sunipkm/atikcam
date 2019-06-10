@@ -42,12 +42,13 @@ im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),animated=True)
 def animate(i):
     global s
     val = ''.encode('utf-8')
-    for i in range(708):
-        s.bind(('',port))
+    for i in range(708*4):
         s.listen(5)
         ct,addr = s.accept()
         #print('Got connection from ', addr)
-        val += ct.recv(4096)
+        temp = ct.recv(1024)
+        print("Received: ",len(temp))
+        val += temp
         ct.send('Data received'.encode('utf-8'))
         ct.close()
     a = image()
