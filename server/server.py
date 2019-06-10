@@ -47,7 +47,8 @@ def animate(i):
         ct,addr = s.accept()
         #print('Got connection from ', addr)
         temp = ct.recv(1024)
-        print("Received: ",len(temp))
+        if (len(temp)!=1024):
+            print("Received: ",len(temp))
         val += temp
         ct.send('Data received'.encode('utf-8'))
         ct.close()
