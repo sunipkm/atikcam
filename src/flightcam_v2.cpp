@@ -110,7 +110,7 @@ volatile int boardtemp , chassistemp ; //globals that both threads can access
 
 /* Internal data structure */
 typedef struct image {
-	unsigned long long int tnow ; // timestamp in ms (from epoch, in local time)
+	uint64_t tnow ; // timestamp in ms (from epoch, in local time)
 	float exposure ; //exposure length in seconds
 	unsigned short pixx ; //pixel x
 	unsigned short pixy ; //pixel y
