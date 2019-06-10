@@ -125,7 +125,7 @@ typedef struct image {
 
 typedef union{
 	image a ;
-	unsigned char buf[708*4][1024];
+	unsigned char buf[708*2][2048];
 } packetize ;
 /* End internal data structure */
 
@@ -845,7 +845,7 @@ void * camera_thread(void *t)
                 int sock = 0 , valread = 0 ;
                 struct sockaddr_in serv_addr ;
                 char recv_buf[32] = {0} ;
-                for ( int i = 0 ; i < 708*4 ; i++ ){
+                for ( int i = 0 ; i < 708*2 ; i++ ){
 					if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
                 	{
                     	cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
@@ -863,8 +863,8 @@ void * camera_thread(void *t)
                         cerr << "Camera thread: DataVis: Connection failed" << endl ;
                         break ;
                     }
-                    ssize_t numsent = send(sock,&p.buf[i],1024,0);
-					//cerr << "Camera thread: DataVis: Size of sent data: " << 1024 << endl ;
+                    ssize_t numsent = send(sock,&p.buf[i],2048,0);
+					//cerr << "Camera thread: DataVis: Size of sent data: " << 2048 << endl ;
 					//cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
                     //cerr << "Camera thread: DataVis: Data sent" << endl ;
                     //valread = read(sock,recv_buf,32);

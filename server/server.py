@@ -43,11 +43,11 @@ def animate(i):
     global s
     val = ''.encode('utf-8')
     s.listen(4096)
-    for i in range(708*4):
+    for i in range(708*2):
         ct,addr = s.accept()
         #print('Got connection from ', addr)
-        temp = ct.recv(1024)
-        if (len(temp)!=1024):
+        temp = ct.recv(2048)
+        if (len(temp)!=2048):
             print("Received: ",len(temp))
         val += temp
         #ct.send('Data received'.encode('utf-8'))
