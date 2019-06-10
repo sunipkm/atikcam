@@ -43,11 +43,11 @@ def animate(i):
     global s
     val = ''.encode('utf-8')
     s.listen(4096)
-    for i in range(708*2):
+    for i in range(708*4):
         ct,addr = s.accept()
         #print('Got connection from ', addr)
-        temp = ct.recv(2048)
-        if (len(temp)!=2048):
+        temp = ct.recv(1024)
+        if (len(temp)!=1024):
             print("Received: ",len(temp))
         val += temp
         #ct.send('Data received'.encode('utf-8'))
@@ -78,5 +78,5 @@ def animate(i):
     im.set_array(data)
     return im,
 
-animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False)
+animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
 plt.show()
