@@ -844,7 +844,7 @@ void * camera_thread(void *t)
                 #ifdef DATAVIS
                 int sock = 0 , valread = 0 ;
                 struct sockaddr_in serv_addr ;
-                char recv_buf[16] = {0} ;
+                char recv_buf[32] = {0} ;
 				if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
                 {
                     cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
@@ -867,7 +867,7 @@ void * camera_thread(void *t)
 					//cerr << "Camera thread: DataVis: Size of sent data: " << 1024 << endl ;
 					//cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
                     //cerr << "Camera thread: DataVis: Data sent" << endl ;
-                    valread = read(sock,recv_buf,16);
+                    valread = read(sock,recv_buf,32);
                     //cerr << "Camera thread: DataVis: " << recv_buf << endl ;
                 }
 				cerr << "Camera thread: DataVis: Sent" << endl;

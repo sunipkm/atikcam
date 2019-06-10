@@ -43,7 +43,6 @@ def animate(i):
     global s
     val = ''.encode('utf-8')
     for i in range(708*4):
-        s.listen(5)
         ct,addr = s.accept()
         #print('Got connection from ', addr)
         temp = ct.recv(1024)
