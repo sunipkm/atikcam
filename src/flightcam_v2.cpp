@@ -869,7 +869,7 @@ void * camera_thread(void *t)
 					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
                     //cerr << "Camera thread: DataVis: Data sent" << endl ;
                     valread = read(sock,recv_buf,16);
-                    //cerr << "Camera thread: DataVis: " << recv_buf << endl ;
+                    cerr << "Camera thread: DataVis: " << recv_buf << endl ;
                 }
 				cerr << "Camera thread: DataVis: Sent" << endl;
                 #endif //DATAVIS
