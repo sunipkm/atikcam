@@ -929,6 +929,8 @@ void * housekeeping_thread(void *t)
 {   
     long tid = (long) t ;
     cerr << "Housekeeping: " << tid << endl ;
+	while(!done)
+		sleep(100);
     pthread_exit(NULL) ;
 }
 /* End body temperature monitoring thread */
