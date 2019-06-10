@@ -1038,6 +1038,6 @@ int main ( void )
         exit(-1);
     }
     cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
-    pthread_exit(NULL);
+    //pthread_exit(NULL);
     return 0 ;
 }
