@@ -50,7 +50,7 @@ def animate(i):
         if (len(temp)!=1024):
             print("Received: ",len(temp))
         val += temp
-        //ct.send('Data received'.encode('utf-8'))
+        #ct.send('Data received'.encode('utf-8'))
     ct.close()
     a = image()
     c.memmove(c.addressof(a),val,c.sizeof(image))
