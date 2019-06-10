@@ -43,12 +43,15 @@ def animate(i):
     global s
     val = ''.encode('utf-8')
     for i in range(708):
+        #s.listen(5)
         ct,addr = s.accept()
         #print('Got connection from ', addr)
         val += ct.recv(4096)
         ct.send('Data received'.encode('utf-8'))
+        ct.close()
     a = image()
     c.memmove(c.addressof(a),val,c.sizeof(image))
+    print(len(val))
     img = np.array(a.picdata[0:a.imgsize])
     data = np.reshape(img,(a.pixy,a.pixx))
     print(a.pixx,a.pixy)
