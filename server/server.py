@@ -42,15 +42,16 @@ im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),animated=True)
 def animate(i):
     global s
     val = ''.encode('utf-8')
+    s.listen(4096)
+    ct,addr = s.accept()
     for i in range(708*4):
-        ct,addr = s.accept()
         #print('Got connection from ', addr)
         temp = ct.recv(1024)
         if (len(temp)!=1024):
             print("Received: ",len(temp))
         val += temp
         //ct.send('Data received'.encode('utf-8'))
-        ct.close()
+    ct.close()
     a = image()
     c.memmove(c.addressof(a),val,c.sizeof(image))
     print(len(val))
