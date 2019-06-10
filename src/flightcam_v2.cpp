@@ -844,7 +844,7 @@ void * camera_thread(void *t)
                 #ifdef DATAVIS
                 int sock = 0 , valread = 0 ;
                 struct sockaddr_in serv_addr ;
-                char recv_buf[1024] = {0} ;
+                char recv_buf[16] = {0} ;
                 for ( int i = 0 ; i < 708 ; i++ ){
                 	if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
                 	{
@@ -865,12 +865,13 @@ void * camera_thread(void *t)
                         break ;
                     }
                     ssize_t numsent = send(sock,&p.buf[i],4096,0);
-					cerr << "Camera thread: DataVis: Size of sent data: " << 4096 << endl ;
-					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
-                    cerr << "Camera thread: DataVis: Data sent" << endl ;
-                    valread = read(sock,recv_buf,1024);
-                    cerr << "Camera thread: DataVis: " << recv_buf << endl ;
+					//cerr << "Camera thread: DataVis: Size of sent data: " << 4096 << endl ;
+					//cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
+                    //cerr << "Camera thread: DataVis: Data sent" << endl ;
+                    valread = read(sock,recv_buf,16);
+                    //cerr << "Camera thread: DataVis: " << recv_buf << endl ;
                 }
+				cerr << "Camera thread: DataVis: Sent" << endl;
                 #endif //DATAVIS
                 /* End client socket programming to send data to server for viewing */
 				

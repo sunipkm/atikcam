@@ -44,7 +44,7 @@ def animate(i):
     val = ''.encode('utf-8')
     for i in range(708):
         ct,addr = s.accept()
-        print('Got connection from ', addr)
+        #print('Got connection from ', addr)
         val += ct.recv(4096)
         ct.send('Data received'.encode('utf-8'))
     a = image()
