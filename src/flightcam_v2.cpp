@@ -80,7 +80,7 @@ using namespace std ;
 #endif
 
 static AtikCamera *devices[MAX] ;
-
+bool gpio_status;
 volatile sig_atomic_t done = 0 ; //global interrupt handler
 volatile bool ccdoverheat = false ; //global ccd temperature status
 
@@ -936,7 +936,7 @@ void * housekeeping_thread(void *t)
 int main ( void )
 {
     /* Setup GPIO */
-	bool gpio_status = false;
+    gpio_status = false;
     #ifdef RPI
     if ( gpioInitialise() < 0 ){
         perror("Main: GPIO Init") ;
