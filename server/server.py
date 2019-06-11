@@ -59,7 +59,7 @@ def animate(i):
     data = np.reshape(img,(a.pixy,a.pixx))
     print(a.pixx,a.pixy)
     print(np.where(data<45000))
-    np.save(str(timenow()),data)
+    #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),a.exposure,a.ccdtemp/100))
     # x0 = 0 ; x1 = 1260
