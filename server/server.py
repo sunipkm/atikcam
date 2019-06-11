@@ -37,7 +37,7 @@ print("Socket is listening")
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
 
-im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),animated=True)
+im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),vmin=0,vmax=65535,animated=True,cmap='bone')
 
 def animate(i):
     global s
@@ -78,5 +78,5 @@ def animate(i):
     im.set_array(data)
     return im,
 
-animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
+animator = anim.FuncAnimation(fig,animate,blit=True,repeat=False,interval=1000)
 plt.show()
