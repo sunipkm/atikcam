@@ -104,7 +104,7 @@ volatile int boardtemp , chassistemp ; //globals that both threads can access
 #endif //PORT
 
 #ifndef SERVER_IP
-#define SERVER_IP "127.0.0.1"
+#define SERVER_IP "192.168.1.5"
 #endif //SERVER_IP
 /* End Globals */
 
