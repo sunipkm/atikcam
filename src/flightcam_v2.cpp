@@ -816,7 +816,7 @@ void * camera_thread(void *t)
 										//#endif
 									}
 								}
-								usleep ( 1000 ) ;
+								usleep ( 100000 ) ;
 							}
 							#ifdef SK_DEBUG
 							cerr << "Info: Sensor: 1" << " Temp: " << temp << " C" << endl ;
