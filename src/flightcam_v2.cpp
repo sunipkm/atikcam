@@ -845,8 +845,9 @@ void * camera_thread(void *t)
                 imgdata -> chassistemp = chassistemp ;
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
 				
-				global_p.a = *imgdata;
-				
+				#ifdef DATAVIS
+				memcpy(&(global_p.a),imgdata,sizeof(image));
+				#endif
                 if ( save(gfname.c_str(),imgdata) )
 				{
 					#ifdef SK_DEBUG
