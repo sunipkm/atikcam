@@ -812,7 +812,7 @@ void * camera_thread(void *t)
 											}
 										#endif
 										//#ifdef SK_DEBUG
-										//cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
+										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
 										//#endif
 									}
 								}
@@ -1111,6 +1111,9 @@ int main ( void )
         exit(-1);
     }
     cerr << "Main: Completed datavis thread, exited with status " << status << endl ;
+	#ifdef RPI
+	gpioTerminate();
+	#endif
     //pthread_exit(NULL);
     return 0 ;
 }
