@@ -119,15 +119,20 @@ typedef struct image {
     short boardtemp ;
     short chassistemp ;
 	unsigned short picdata[1449072] ;
-	unsigned char unused[6] ; //first set of padding
+	unsigned char unused[6] ; //first set of padding, default for GCC -> multiple of 32
 	unsigned char unused2[1792] ; //padding to round off to 708*4096 bytes
 } image ; //size 708*4096
+/* End internal data structure */
 
+/* Packet Serializer */
+#ifndef PACK_SIZE
+#define PACK_SIZE 8192
+#endif
 typedef union{
 	image a ;
-	unsigned char buf[708*4][1024];
+	unsigned char buf[sizeof(image)/PACK_SIZE][PACK_SIZE];
 } packetize ;
-/* End internal data structure */
+/* Packet Serializer */
 
 /* Housekeeping Log in binary */
 typedef union flb { float f ; char b[sizeof(float)] ; } flb ;
@@ -845,7 +850,7 @@ void * camera_thread(void *t)
                 int sock = 0 , valread = 0 ;
                 struct sockaddr_in serv_addr ;
                 char recv_buf[32] = {0} ;
-                for ( int i = 0 ; i < 708*4 ; i++ ){
+                for ( int i = 0 ; i < sizeof(image)/PACK_SIZE ; i++ ){
 					if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
                 	{
                     	cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
@@ -863,9 +868,9 @@ void * camera_thread(void *t)
                         cerr << "Camera thread: DataVis: Connection failed" << endl ;
                         break ;
                     }
-                    ssize_t numsent = send(sock,&p.buf[i],1024,0);
-					//cerr << "Camera thread: DataVis: Size of sent data: " << 1024 << endl ;
-					//cerr << "Camera thread: DataVis: Reported sent data: " << numsent << endl;
+                    ssize_t numsent = send(sock,&p.buf[i],PACK_SIZE,0);
+					//cerr << "Camera thread: DataVis: Size of sent data: " << PACK_SIZE << endl ;
+					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
                     //cerr << "Camera thread: DataVis: Data sent" << endl ;
                     //valread = read(sock,recv_buf,32);
                     //cerr << "Camera thread: DataVis: " << recv_buf << endl ;
