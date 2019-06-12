@@ -126,7 +126,7 @@ typedef struct image {
 
 /* Packet Serializer */
 #ifndef PACK_SIZE
-#define PACK_SIZE 8192
+#define PACK_SIZE sizeof(image)
 #endif
 typedef union{
 	image a ;

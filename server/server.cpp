@@ -27,7 +27,7 @@ typedef struct image {
 
 /* Packet Serializer */
 #ifndef PACK_SIZE
-#define PACK_SIZE 8192
+#define PACK_SIZE sizeof(image)
 #endif
 typedef union{
 	image a ;
@@ -74,6 +74,7 @@ int main(int argc, char const *argv[])
     } 
     packetize p ;
     while (true){
+        cout << "Reads: " << sizeof(image)/PACK_SIZE << endl ;
     for ( int i = 0 ; i < sizeof(image)/PACK_SIZE; i++ ){
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address,  
                        (socklen_t*)&addrlen))<0) 
@@ -81,7 +82,7 @@ int main(int argc, char const *argv[])
             perror("accept"); 
             exit(EXIT_FAILURE); 
         }
-        valread = read( new_socket , &p.buf[i], PACK_SIZE);
+        valread = recv( new_socket , &p.buf[i], PACK_SIZE, MSG_WAITALL);
         if ( valread != PACK_SIZE )
         cout << i << " th read: " << valread << "/" << PACK_SIZE << endl ;
         close(new_socket);
