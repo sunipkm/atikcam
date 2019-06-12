@@ -958,7 +958,7 @@ void * datavis_thread(void *t)
 	{
 		valread = 0 ;
         char recv_buf[32] = {0} ;
-        for ( int i = 0 ; i < sizeof(image)/PACK_SIZE ; i++ ){
+        for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) & (!done) ; i++ ){
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
             	perror("accept"); 
@@ -975,8 +975,10 @@ void * datavis_thread(void *t)
             //cerr << "DataVis: " << recv_buf << endl ;
 			close(new_socket);
 		}
+		usleep(PIC_TIME_GAP);
 		cerr << "DataVis thread: Sent" << endl ;
 	}
+	close(server_fd);
 	pthread_exit(NULL);
 }
 /* Data visualization server thread */
