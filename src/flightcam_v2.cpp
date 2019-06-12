@@ -126,7 +126,7 @@ typedef struct image {
 
 /* Packet Serializer */
 #ifndef PACK_SIZE
-#define PACK_SIZE 1024
+#define PACK_SIZE 2048
 #endif
 typedef union{
 	image a ;
@@ -870,6 +870,7 @@ void * camera_thread(void *t)
                     }
                     ssize_t numsent = send(sock,&p.buf[i],PACK_SIZE,0);
 					//cerr << "Camera thread: DataVis: Size of sent data: " << PACK_SIZE << endl ;
+					if ( numsent != PACK_SIZE )
 					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
                     //cerr << "Camera thread: DataVis: Data sent" << endl ;
                     //valread = read(sock,recv_buf,32);
