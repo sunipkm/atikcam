@@ -975,7 +975,7 @@ void * datavis_thread(void *t)
             //cerr << "DataVis: " << recv_buf << endl ;
 			close(new_socket);
 		}
-		usleep(PIC_TIME_GAP);
+		sleep(PIC_TIME_GAP);
 		cerr << "DataVis thread: Sent" << endl ;
 	}
 	close(server_fd);
