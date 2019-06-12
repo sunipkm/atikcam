@@ -42,23 +42,16 @@ im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),vmin=0,vmax=65535,animated
 def animate(i):
     global s
     val = ''.encode('utf-8')
-    s.listen(4096)
-    for i in range(708*4):
-        ct,addr = s.accept()
-        #print('Got connection from ', addr)
-        temp = ct.recv(1024)
-        if (len(temp)!=1024):
-            print("Received: ",len(temp))
-        val += temp
-        #ct.send('Data received'.encode('utf-8'))
-        ct.close()
+    ct,addr = s.accept()
+    print('Got connection from ', addr)
+    val = ct.recv(c.sizeof(image),socket.MSG_WAITALL)
+    if (len(val)!=c.sizeof(image)):
+        print("Received: ",len(val))
+    ct.close()
     a = image()
     c.memmove(c.addressof(a),val,c.sizeof(image))
-    print(len(val))
     img = np.array(a.picdata[0:a.imgsize])
     data = np.reshape(img,(a.pixy,a.pixx))
-    print(a.pixx,a.pixy)
-    print(np.where(data<45000))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),a.exposure,a.ccdtemp/100))
