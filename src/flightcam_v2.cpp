@@ -834,15 +834,16 @@ void * camera_thread(void *t)
                 
                 width  = device -> imageWidth(pixelCX,pix_bin) ;
                 height = device -> imageHeight(pixelCY,pix_bin) ;
-                float etemp = exposure ; short tempccd = floor(temp*100) ;
+				imgsize = width*height ;
+                float etemp = exposure ; short tempccd = floor(temp*100) ; short tempboard = boardtemp ; short tempchassis = chassistemp ;
 				memcpy(&(imgdata -> tnow),&tnow,sizeof(tnow)); ;
 				memcpy(&(imgdata -> pixx),&width,sizeof(width)) ;
 				memcpy(&(imgdata -> pixy),&height,sizeof(height)) ;
-                memcpy(&(imgdata -> imgsize), &(width*height),sizeof(unsigned int)) ;
+                memcpy(&(imgdata -> imgsize), &imgsize,sizeof(unsigned int)) ;
 				memcpy(&(imgdata -> exposure),&etemp,sizeof(float)) ;
                 memcpy(&(imgdata -> ccdtemp) ,&tempccd,sizeof(short)) ;
-                memcpy(&(imgdata -> boardtemp),&boardtemp,sizeof(short)) ;
-                memcpy(&(imgdata -> chassistemp),&chassistemp,sizeof(short)) ;
+                memcpy(&(imgdata -> boardtemp),&tempboard,sizeof(short)) ;
+                memcpy(&(imgdata -> chassistemp),&tempchassis,sizeof(short)) ;
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
 				
 				#ifdef DATAVIS
