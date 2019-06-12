@@ -895,8 +895,10 @@ void * camera_thread(void *t)
         			}
                     ssize_t numsent = send(new_socket,&p.buf[i],PACK_SIZE,MSG_DONTWAIT);
 					//cerr << "Camera thread: DataVis: Size of sent data: " << PACK_SIZE << endl ;
-					if ( numsent != PACK_SIZE )
-					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
+					if ( numsent != PACK_SIZE ){
+						perror("Camera thread: DataVis: Send: ")
+						cerr << "Camera thread: DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
+					}
                     //cerr << "Camera thread: DataVis: Data sent" << endl ;
                     //valread = read(sock,recv_buf,32);
                     //cerr << "Camera thread: DataVis: " << recv_buf << endl ;
