@@ -163,7 +163,7 @@ inline void put_data ( ostream & str , float val )
 		str << x.b[i] ;
 }
 /* End Housekeeping log */
-
+typedef struct sockaddr sk_sockaddr; 
 /* Saving FITS Image */
 #ifndef NOSAVEFITS
 int save(const char *fileName , image * data) {
@@ -452,6 +452,44 @@ void * camera_thread(void *t)
 	}
     /***************/
 
+	/* Set up TCP/IP Server */
+	#ifdef DATAVIS
+	int server_fd, new_socket, valread; 
+    struct sockaddr_in address; 
+    int opt = 1; 
+    int addrlen = sizeof(address);  
+       
+    // Creating socket file descriptor 
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
+    { 
+        perror("socket failed"); 
+        //exit(EXIT_FAILURE); 
+    } 
+       
+    // Forcefully attaching socket to the port 8080 
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                                                  &opt, sizeof(opt))) 
+    { 
+        perror("setsockopt"); 
+        //exit(EXIT_FAILURE); 
+    } 
+    address.sin_family = AF_INET; 
+    address.sin_addr.s_addr = INADDR_ANY; 
+    address.sin_port = htons( PORT ); 
+
+    // Forcefully attaching socket to the port 8080 
+    if (bind(server_fd, (sk_sockaddr *)&address,sizeof(address))<0) 
+    { 
+        perror("bind failed"); 
+        //exit(EXIT_FAILURE); 
+    } 
+    if (listen(server_fd, 3) < 0) 
+    { 
+        perror("listen"); 
+        //exit(EXIT_FAILURE); 
+    } 
+	#endif //DATAVIS
+	/* Set up TCP/IP Server */
     bool cam_off = false ;
 	unsigned char firstrun = 1 ;
 	do {
@@ -847,35 +885,22 @@ void * camera_thread(void *t)
 				p.a = *imgdata;
                 /* Client socket programming to send data to server for viewing */
                 #ifdef DATAVIS
-                int sock = 0 , valread = 0 ;
-                struct sockaddr_in serv_addr ;
+				valread = 0 ;
                 char recv_buf[32] = {0} ;
                 for ( int i = 0 ; i < sizeof(image)/PACK_SIZE ; i++ ){
-					if ((sock = socket(AF_INET,SOCK_STREAM,0))<0)
-                	{
-                    	cerr << "Camera thread: DataVis: Socket creation error!" <<endl ;
-                	}
-                	serv_addr.sin_family = AF_INET ;
-               		serv_addr.sin_port = htons(PORT) ;
-                    if(inet_pton(AF_INET,SERVER_IP,&serv_addr.sin_addr)<=0)
-                    {
-                        cerr << "Camera thread: DataVis: Invalid/Unsupported address" << endl ;
-                        break ;
-                    }
-                    // /struct sockaddr * serv_addr_pointer = &serv_addr ;
-                    if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
-                    {
-                        cerr << "Camera thread: DataVis: Connection failed" << endl ;
-                        break ;
-                    }
-                    ssize_t numsent = send(sock,&p.buf[i],PACK_SIZE,0);
+					if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
+        			{ 
+            			perror("accept"); 
+						cerr << "Camera thread: DataVis: Accept from socket error!" <<endl ;
+        			}
+                    ssize_t numsent = send(new_socket,&p.buf[i],PACK_SIZE,0);
 					//cerr << "Camera thread: DataVis: Size of sent data: " << PACK_SIZE << endl ;
 					if ( numsent != PACK_SIZE )
 					cerr << "Camera thread: DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
                     //cerr << "Camera thread: DataVis: Data sent" << endl ;
                     //valread = read(sock,recv_buf,32);
                     //cerr << "Camera thread: DataVis: " << recv_buf << endl ;
-					close(sock);
+					close(new_socket);
                 }
 				cerr << "Camera thread: DataVis: Sent" << endl;
                 #endif //DATAVIS
