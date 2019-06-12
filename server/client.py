@@ -37,13 +37,16 @@ a = image()
 def animate(i):
     global a
     val = ''.encode('utf-8')
-    s = socket.socket()
-    print("Socket created successfully")
-    s.connect(('192.168.1.4',port))
-    val = s.recv(c.sizeof(image),socket.MSG_WAITALL)
-    if (len(val)!=c.sizeof(image)):
-        print("Received: ",len(val))
-    s.close()
+    print("Receiving %d packets:"%(c.sizeof(image)//8192))
+    for i in range(c.sizeof(image)//8192):
+        s = socket.socket()
+        print("Socket created successfully")
+        s.connect(('192.168.1.4',port))
+        temp = s.recv(c.sizeof(image),socket.MSG_WAITALL)
+        if (len(temp)!=8192):
+            print("Received: ",len(val))
+        s.close()
+        val += temp
     c.memmove(c.addressof(a),val,c.sizeof(image))
     img = np.array(a.picdata[0:a.imgsize])
     data = np.reshape(img,(a.pixy,a.pixx))
