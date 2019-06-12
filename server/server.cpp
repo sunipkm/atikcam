@@ -27,7 +27,7 @@ typedef struct image {
 
 /* Packet Serializer */
 #ifndef PACK_SIZE
-#define PACK_SIZE 8192
+#define PACK_SIZE 1024
 #endif
 typedef union{
 	image a ;
@@ -40,8 +40,7 @@ int main(int argc, char const *argv[])
     int server_fd, new_socket, valread; 
     struct sockaddr_in address; 
     int opt = 1; 
-    int addrlen = sizeof(address); 
-    char *hello = "Hello from server"; 
+    int addrlen = sizeof(address);  
        
     // Creating socket file descriptor 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
@@ -74,6 +73,7 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE); 
     } 
     packetize p ;
+    while (true){
     for ( int i = 0 ; i < sizeof(image)/PACK_SIZE; i++ ){
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address,  
                        (socklen_t*)&addrlen))<0) 
@@ -84,8 +84,8 @@ int main(int argc, char const *argv[])
         valread = read( new_socket , &p.buf[i], PACK_SIZE); 
         cout << i << " th read: " << valread << "/" << PACK_SIZE << endl ;
     }
-    cout << "Temperature: " << p.a.ccdtemp " C" << endl ;
+    cout << "Temperature: " << p.a.ccdtemp << " C" << endl ;
     cout << "Timestamp: " << p.a.tnow << " ms" << endl ;
-    cout << "Image size: " << p.a.imgsize << endl ;
+    cout << "Image size: " << p.a.imgsize << endl ;}
     return 0; 
 } 
