@@ -40,6 +40,7 @@ def animate(i):
     print("Receiving %d packets:"%(1))
     for i in range(1):
         s = socket.socket()
+        temp = ''.encode('utf-8')
         print("Socket created successfully")
         while True:
             try:
@@ -47,7 +48,10 @@ def animate(i):
                 break
             except Exception:
                 continue
-        temp = s.recv(c.sizeof(image),socket.MSG_WAITALL)
+        try:
+            temp = s.recv(c.sizeof(image),socket.MSG_WAITALL)
+        except Exception:
+            pass
         if (len(temp)!=c.sizeof(image)):
             print("Received: ",len(val))
         s.close()
@@ -58,7 +62,7 @@ def animate(i):
     print(a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
-    fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),a.exposure,a.ccdtemp/100))
+    fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(a.timenow/1e3),a.exposure,a.ccdtemp/100))
     # x0 = 0 ; x1 = 1260
     # xl = (x1 - x0)//4
     # img = np.zeros((data[110:950,0:1260].shape[0],data[110:950,0:1260].shape[1],3),dtype=np.uint8)
