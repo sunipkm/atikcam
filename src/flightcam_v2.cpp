@@ -126,12 +126,13 @@ typedef struct image {
 
 /* Packet Serializer */
 #ifndef PACK_SIZE
-#define PACK_SIZE 8192
+#define PACK_SIZE sizeof(image)
 #endif
 typedef union{
 	image a ;
 	unsigned char buf[sizeof(image)/PACK_SIZE][PACK_SIZE];
 } packetize ;
+packetize global_p ;
 /* Packet Serializer */
 
 /* Housekeeping Log in binary */
@@ -452,44 +453,6 @@ void * camera_thread(void *t)
 	}
     /***************/
 
-	/* Set up TCP/IP Server */
-	#ifdef DATAVIS
-	int server_fd, new_socket, valread; 
-    struct sockaddr_in address; 
-    int opt = 1; 
-    int addrlen = sizeof(address);  
-       
-    // Creating socket file descriptor 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
-    { 
-        perror("socket failed"); 
-        //exit(EXIT_FAILURE); 
-    } 
-       
-    // Forcefully attaching socket to the port 8080 
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
-                                                  &opt, sizeof(opt))) 
-    { 
-        perror("setsockopt"); 
-        //exit(EXIT_FAILURE); 
-    } 
-    address.sin_family = AF_INET; 
-    address.sin_addr.s_addr = INADDR_ANY; 
-    address.sin_port = htons( PORT ); 
-
-    // Forcefully attaching socket to the port 8080 
-    if (bind(server_fd, (sk_sockaddr *)&address,sizeof(address))<0) 
-    { 
-        perror("bind failed"); 
-        //exit(EXIT_FAILURE); 
-    } 
-    if (listen(server_fd, 3) < 0) 
-    { 
-        perror("listen"); 
-        //exit(EXIT_FAILURE); 
-    } 
-	#endif //DATAVIS
-	/* Set up TCP/IP Server */
     bool cam_off = false ;
 	unsigned char firstrun = 1 ;
 	do {
@@ -881,32 +844,8 @@ void * camera_thread(void *t)
                 imgdata -> boardtemp = boardtemp ;
                 imgdata -> chassistemp = chassistemp ;
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
-				packetize p ;
-				p.a = *imgdata;
-                /* Client socket programming to send data to server for viewing */
-                #ifdef DATAVIS
-				valread = 0 ;
-                char recv_buf[32] = {0} ;
-                for ( int i = 0 ; i < sizeof(image)/PACK_SIZE ; i++ ){
-					if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
-        			{ 
-            			perror("accept"); 
-						cerr << "Camera thread: DataVis: Accept from socket error!" <<endl ;
-        			}
-                    ssize_t numsent = send(new_socket,&p.buf[i],PACK_SIZE,MSG_DONTWAIT);
-					//cerr << "Camera thread: DataVis: Size of sent data: " << PACK_SIZE << endl ;
-					if ( numsent != PACK_SIZE ){
-						perror("Camera thread: DataVis: Send: ");
-						cerr << "Camera thread: DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
-					}
-                    //cerr << "Camera thread: DataVis: Data sent" << endl ;
-                    //valread = read(sock,recv_buf,32);
-                    //cerr << "Camera thread: DataVis: " << recv_buf << endl ;
-					close(new_socket);
-                }
-				cerr << "Camera thread: DataVis: Sent" << endl;
-                #endif //DATAVIS
-                /* End client socket programming to send data to server for viewing */
+				
+				global_p.a = *imgdata;
 				
                 if ( save(gfname.c_str(),imgdata) )
 				{
@@ -976,6 +915,70 @@ void * housekeeping_thread(void *t)
 }
 /* End body temperature monitoring thread */
 
+/* Data visualization server thread */
+void * datavis_thread(void *t)
+{
+	int server_fd, new_socket, valread; 
+    struct sockaddr_in address; 
+    int opt = 1; 
+    int addrlen = sizeof(address);  
+       
+    // Creating socket file descriptor 
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
+    { 
+        perror("socket failed"); 
+        //exit(EXIT_FAILURE); 
+    } 
+       
+    // Forcefully attaching socket to the port 8080 
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                                                  &opt, sizeof(opt))) 
+    { 
+        perror("setsockopt"); 
+        //exit(EXIT_FAILURE); 
+    } 
+    address.sin_family = AF_INET; 
+    address.sin_addr.s_addr = INADDR_ANY; 
+    address.sin_port = htons( PORT ); 
+
+    // Forcefully attaching socket to the port 8080 
+    if (bind(server_fd, (sk_sockaddr *)&address,sizeof(address))<0) 
+    { 
+        perror("bind failed"); 
+        //exit(EXIT_FAILURE); 
+    } 
+    if (listen(server_fd, 3) < 0) 
+    { 
+        perror("listen"); 
+        //exit(EXIT_FAILURE); 
+    }
+	sleep(10); //let others get ready
+	while(!done)
+	{
+		valread = 0 ;
+        char recv_buf[32] = {0} ;
+        for ( int i = 0 ; i < sizeof(image)/PACK_SIZE ; i++ ){
+			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
+        	{ 
+            	perror("accept"); 
+				cerr << "DataVis: Accept from socket error!" <<endl ;
+        	}
+            ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,0);
+			//cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
+			if ( numsent != PACK_SIZE ){
+				perror("DataVis: Send: ");
+				cerr << "DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
+			}
+            //cerr << "DataVis: Data sent" << endl ;
+            //valread = read(sock,recv_buf,32);
+            //cerr << "DataVis: " << recv_buf << endl ;
+			close(new_socket);
+		}
+		cerr << "DataVis thread: Sent" << endl ;
+	}
+	pthread_exit(NULL);
+}
+/* Data visualization server thread */
 int main ( void )
 {
     /* Setup GPIO */
@@ -1042,8 +1045,8 @@ int main ( void )
     AtikDebug = false ;
     #endif //ATIK DEBUG
 
-    int rc0, rc1 ;
-    pthread_t thread0 , thread1 ;
+    int rc0, rc1, rc2 ;
+    pthread_t thread0 , thread1, thread2 ;
     pthread_attr_t attr ;
     void* status ;
     pthread_attr_init(&attr);
@@ -1059,6 +1062,12 @@ int main ( void )
     rc1 = pthread_create(&thread1,&attr,housekeeping_thread,(void *)1);
     if (rc1){
         cerr << "Main: Error: Unable to create housekeeping thread " << rc1 << endl ;
+        exit(-1) ; 
+    }
+
+	rc2 = pthread_create(&thread2,&attr,datavis_thread,(void *)2);
+    if (rc2){
+        cerr << "Main: Error: Unable to create datavis thread " << rc2 << endl ;
         exit(-1) ; 
     }
 
@@ -1079,6 +1088,14 @@ int main ( void )
         exit(-1);
     }
     cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
+
+	rc2 = pthread_join(thread2,&status) ;
+    if (rc2)
+    {
+        cerr << "Main: Error: Unable to join datavis thread" << rc2 << endl ;
+        exit(-1);
+    }
+    cerr << "Main: Completed datavis thread, exited with status " << status << endl ;
     //pthread_exit(NULL);
     return 0 ;
 }

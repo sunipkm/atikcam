@@ -37,13 +37,13 @@ a = image()
 def animate(i):
     global a
     val = ''.encode('utf-8')
-    print("Receiving %d packets:"%(c.sizeof(image)//8192))
-    for i in range(c.sizeof(image)//8192):
+    print("Receiving %d packets:"%(1))
+    for i in range(1):
         s = socket.socket()
         print("Socket created successfully")
         s.connect(('192.168.1.4',port))
         temp = s.recv(c.sizeof(image),socket.MSG_WAITALL)
-        if (len(temp)!=8192):
+        if (len(temp)!=c.sizeof(image)):
             print("Received: ",len(val))
         s.close()
         val += temp
