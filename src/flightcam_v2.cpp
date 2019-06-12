@@ -855,6 +855,7 @@ void * camera_thread(void *t)
                 global_p.a.ccdtemp = floor(temp*100) ;
                 global_p.a.boardtemp = boardtemp ;
                 global_p.a.chassistemp = chassistemp ;
+				cerr << "Camera: " << global_p.a.exposure << endl ;
 				#endif
                 if ( save(gfname.c_str(),imgdata) )
 				{
@@ -966,6 +967,7 @@ void * datavis_thread(void *t)
 	{
 		valread = 0 ;
         char recv_buf[32] = {0} ;
+		cerr << "DataVis: " << global_p.a.exposure << endl ;
         for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) & (!done) ; i++ ){
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
