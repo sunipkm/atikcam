@@ -71,5 +71,5 @@ def animate(i):
     im.set_array(data)
     return im,
 
-animator = anim.FuncAnimation(fig,animate,blit=True,repeat=False,interval=1000)
+animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
 plt.show()

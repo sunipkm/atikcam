@@ -41,7 +41,12 @@ def animate(i):
     for i in range(1):
         s = socket.socket()
         print("Socket created successfully")
-        s.connect(('192.168.1.4',port))
+        while True:
+            try:
+                s.connect(('192.168.1.4',port))
+                break
+            except Exception:
+                continue
         temp = s.recv(c.sizeof(image),socket.MSG_WAITALL)
         if (len(temp)!=c.sizeof(image)):
             print("Received: ",len(val))
@@ -50,6 +55,7 @@ def animate(i):
     c.memmove(c.addressof(a),val,c.sizeof(image))
     img = np.array(a.picdata[0:a.imgsize])
     data = np.reshape(img,(a.pixy,a.pixx))
+    print(a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),a.exposure,a.ccdtemp/100))
@@ -69,5 +75,5 @@ def animate(i):
     im.set_array(data)
     return im,
 
-animator = anim.FuncAnimation(fig,animate,blit=True,repeat=False,interval=1000)
+animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
 plt.show()

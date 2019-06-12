@@ -847,15 +847,15 @@ void * camera_thread(void *t)
 				
 				#ifdef DATAVIS
 				memcpy(&(global_p.a),imgdata,sizeof(image));
-				global_p.a.tnow = tnow ;
-				global_p.a.pixx = width ;
-				global_p.a.pixy = height ;
-                global_p.a.imgsize = width*height ;
-				global_p.a.exposure = exposure ;
-                global_p.a.ccdtemp = floor(temp*100) ;
-                global_p.a.boardtemp = boardtemp ;
-                global_p.a.chassistemp = chassistemp ;
-				cerr << "Camera: " << global_p.a.exposure << endl ;
+				// global_p.a.tnow = tnow ;
+				// global_p.a.pixx = width ;
+				// global_p.a.pixy = height ;
+                // global_p.a.imgsize = width*height ;
+				// global_p.a.exposure = exposure ;
+                // global_p.a.ccdtemp = floor(temp*100) ;
+                // global_p.a.boardtemp = boardtemp ;
+                // global_p.a.chassistemp = chassistemp ;
+				// cerr << "Camera: " << global_p.a.exposure << endl ;
 				#endif
                 if ( save(gfname.c_str(),imgdata) )
 				{
