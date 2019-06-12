@@ -834,20 +834,27 @@ void * camera_thread(void *t)
                 
                 width  = device -> imageWidth(pixelCX,pix_bin) ;
                 height = device -> imageHeight(pixelCY,pix_bin) ;
-				imgsize = width*height ;
-                float etemp = exposure ; short tempccd = floor(temp*100) ; short tempboard = boardtemp ; short tempchassis = chassistemp ;
-				memcpy(&(imgdata -> tnow),&tnow,sizeof(tnow)); ;
-				memcpy(&(imgdata -> pixx),&width,sizeof(width)) ;
-				memcpy(&(imgdata -> pixy),&height,sizeof(height)) ;
-                memcpy(&(imgdata -> imgsize), &imgsize,sizeof(unsigned int)) ;
-				memcpy(&(imgdata -> exposure),&etemp,sizeof(float)) ;
-                memcpy(&(imgdata -> ccdtemp) ,&tempccd,sizeof(short)) ;
-                memcpy(&(imgdata -> boardtemp),&tempboard,sizeof(short)) ;
-                memcpy(&(imgdata -> chassistemp),&tempchassis,sizeof(short)) ;
+                
+				imgdata -> tnow = tnow ;
+				imgdata -> pixx = width ;
+				imgdata -> pixy = height ;
+                imgdata -> imgsize = width*height ;
+				imgdata -> exposure = exposure ;
+                imgdata -> ccdtemp = floor(temp*100) ;
+                imgdata -> boardtemp = boardtemp ;
+                imgdata -> chassistemp = chassistemp ;
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
 				
 				#ifdef DATAVIS
 				memcpy(&(global_p.a),imgdata,sizeof(image));
+				global_p.a.tnow = tnow ;
+				global_p.a.pixx = width ;
+				global_p.a.pixy = height ;
+                global_p.a.imgsize = width*height ;
+				global_p.a.exposure = exposure ;
+                global_p.a.ccdtemp = floor(temp*100) ;
+                global_p.a.boardtemp = boardtemp ;
+                global_p.a.chassistemp = chassistemp ;
 				#endif
                 if ( save(gfname.c_str(),imgdata) )
 				{
