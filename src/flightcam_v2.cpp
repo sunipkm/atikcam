@@ -1060,12 +1060,14 @@ int main ( void )
         exit(-1) ; 
     }
 
+	cerr << "Main: Creating housekeeping thread" << endl ;
     rc1 = pthread_create(&thread1,&attr,housekeeping_thread,(void *)1);
     if (rc1){
         cerr << "Main: Error: Unable to create housekeeping thread " << rc1 << endl ;
         exit(-1) ; 
     }
 
+	cerr << "Main: Creating datavis thread" << endl;
 	rc2 = pthread_create(&thread2,&attr,datavis_thread,(void *)2);
     if (rc2){
         cerr << "Main: Error: Unable to create datavis thread " << rc2 << endl ;
