@@ -26,8 +26,6 @@ class image(c.Structure):
         ('unused2',1792*c.c_ubyte)
     ]
 
-s = socket.socket()
-print("Socket created successfully")
 port = 12345
 
 fig = plt.figure(figsize=(10,6))
@@ -37,9 +35,11 @@ im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),vmin=0,vmax=65535,animated
 a = image()
 
 def animate(i):
-    global s,a
+    global a
     val = ''.encode('utf-8')
-    s.connect('192.168.1.4',port)
+    s = socket.socket()
+    print("Socket created successfully")
+    s.connect(('192.168.1.4',port))
     val = s.recv(c.sizeof(image),socket.MSG_WAITALL)
     if (len(val)!=c.sizeof(image)):
         print("Received: ",len(val))
