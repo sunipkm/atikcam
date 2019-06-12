@@ -816,7 +816,7 @@ void * camera_thread(void *t)
 										//#endif
 									}
 								}
-								usleep ( 100000 ) ;
+								usleep ( 100000 ) ; //100ms
 							}
 							#ifdef SK_DEBUG
 							cerr << "Info: Sensor: 1" << " Temp: " << temp << " C" << endl ;
@@ -967,7 +967,7 @@ void * datavis_thread(void *t)
 	{
 		valread = 0 ;
         char recv_buf[32] = {0} ;
-		cerr << "DataVis: " << global_p.a.exposure << endl ;
+		//cerr << "DataVis: " << global_p.a.exposure << endl ;
         for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) & (!done) ; i++ ){
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
