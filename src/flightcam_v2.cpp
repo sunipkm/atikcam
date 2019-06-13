@@ -50,6 +50,9 @@ using namespace std ;
 #include <pigpio.h>
 #endif
 
+#include <libmcp9808.h>
+#include <libads1115.h>
+
 /* End Headers */
 
 /* Globals */
@@ -83,7 +86,7 @@ static AtikCamera *devices[MAX] ;
 bool gpio_status;
 volatile sig_atomic_t done = 0 ; //global interrupt handler
 volatile bool ccdoverheat = false ; //global ccd temperature status
-
+volatile unsigned long long camofftime = INFINITY ;
 double minShortExposure = -1 ;
 double maxShortExposure = -1 ;
 
@@ -98,6 +101,12 @@ ofstream camlog ;
 ofstream errlog ;
 
 volatile int boardtemp , chassistemp ; //globals that both threads can access
+
+bool cam_off = false ;
+
+#ifndef CCD_COOLDOWN_TIME
+#define CCD_COOLDOWN_TIME 60*1000 // in milliseconds
+#endif
 
 #ifndef PORT
 #define PORT 12345
@@ -163,6 +172,10 @@ inline void put_data ( ostream & str , float val )
 	for ( char i = 0 ; i < sizeof(x.b) ; i++ )
 		str << x.b[i] ;
 }
+ inline void put_data ( ostream & str , char val )
+ {
+	 str << val ;
+ }
 /* End Housekeeping log */
 typedef struct sockaddr sk_sockaddr; 
 /* Saving FITS Image */
@@ -210,7 +223,12 @@ void term (int signum)
 
 void overheat(int signum)
 {
+	#ifdef RPI
+	gpioWrite(17,0);
+	#endif
+	camofftime = timenow() ;
     ccdoverheat = true ;
+	cam_off = true ;
     cerr << "Interrupt: Received Signal: 0x" << hex << signum << dec << endl ;
     return ;
 }
@@ -440,33 +458,20 @@ void * camera_thread(void *t)
 	cerr << "Info: Opened camera log file." << endl ;
 	/************************/
 
-	/** Error Log **/
-	ofstream errlog ;
-	#ifndef ERRLOG_LOCATION
-	#define ERRLOG_LOCATION "/home/pi/err_log.txt"
-	#endif
-
-	errlog.open(ERRLOG_LOCATION,ios::app) ;
-	if(!errlog.good())
-	{
-		cerr << "Error: Unable to open error log stream." << endl ;
-	}
-    /***************/
-
-    bool cam_off = false ;
 	unsigned char firstrun = 1 ;
+	sleep(5); //initially sleep for 5 to get everything up and running
 	do {
 		if ( ! firstrun ){
 			cerr << "Camera not found. Waiting " << TIME_WAIT_USB / 1000000 << " s..." << endl ;
 			usleep ( TIME_WAIT_USB ) ; //spend 1 seconds between looking for the camera every subsequent runs
-			#ifdef RPI
-			if ( cam_off )
-			{
-				usleep ( 1000000 * 60 ) ;
-				cam_off = false ;
-				gpioWrite(17,1) ;
-			}
-			#endif
+			// #ifdef RPI
+			// if ( cam_off )
+			// {
+			// 	usleep ( 1000000 * 60 ) ;
+			// 	cam_off = false ;
+			// 	gpioWrite(17,1) ;
+			// }
+			// #endif
 		}
 		int count = AtikCamera::list(devices,MAX) ;
 		cerr << "List: " << count << " number of devices." << endl ;
@@ -578,27 +583,12 @@ void * camera_thread(void *t)
 				for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 				{
 					success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
-					#ifdef RPI
-					if ( gpio_status )
-						if ( temp > 40.0 )
-						{
-							gpioWrite(17,0) ;
-							cerr << "Info: Turned off camera." << endl ;
-							cam_off = true ;
-                            ccdoverheat = true ;
-						}
-					#endif
+					if ( temp > 40.0 )
+						raise(SIGILL);
 					templog << (unsigned char) sensor ;
 					put_data(templog,timenow());
 					put_data(templog,temp);
 					templog << (unsigned char) 0x00 ;
-
-					/** FOR TESTING ONLY **/
-					#ifdef TESTING
-					if ( temp > 40 )
-						exit(0) ;
-					#endif
-					/**********************/
 					#ifdef SK_DEBUG
 					cerr << "Info: Sensor " << sensor << ": Temp: " << temp << " C" << endl ;
 					#endif
@@ -732,23 +722,8 @@ void * camera_thread(void *t)
 							put_data(templog,timenow());
 							put_data(templog,temp);
 							templog << (unsigned char) 0x00 ;
-							
-							#ifdef RPI
-							if ( gpio_status )
-								if ( temp > 40.0 )
-								{
-									gpioWrite(17,0) ;
-									cerr << "Info: Turned off camera." << endl ;
-									cam_off = true ;
-                                    raise(SIGILL) ; //CCD overheat is indicated by illegal instruction
-								}
-							#endif
-
-							/** FOR TESTING ONLY **/
-							#ifdef TESTING
-							if ( temp > 40 )
-								exit(0) ;
-							#endif
+							if ( temp > 40.0 )
+								raise(SIGILL);
 							#ifdef SK_DEBUG
 							cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
 							#endif
@@ -795,22 +770,12 @@ void * camera_thread(void *t)
 									for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 									{
 										temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+										if ( temp > 40 )
+											raise(SIGILL);
 										templog << (unsigned char) sensor ;
 										put_data(templog,timenow());
 										put_data(templog,temp);
 										templog << (unsigned char) 0x00 ;
-
-										/** FOR TESTING ONLY **/
-										#ifdef RPI
-										if ( gpio_status )
-											if ( temp > 40.0 )
-											{
-												gpioWrite(17,0) ;
-												cerr << "Info: Turned off camera." << endl ;
-												cam_off = true ;
-                                                raise(SIGILL) ; //CCD overheat is indicated by illegal instruction
-											}
-										#endif
 										//#ifdef SK_DEBUG
 										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
 										//#endif
@@ -917,10 +882,138 @@ void * camera_thread(void *t)
 /* Body temperature monitoring thread */
 void * housekeeping_thread(void *t)
 {   
-    long tid = (long) t ;
-    cerr << "Housekeeping: " << tid << endl ;
-	while(!done)
-		sleep(1);
+	ofstream tempchassis, tempboard ;
+	#ifndef CHASSISLOG_LOCATION
+	#define CHASSISLOG_LOCATION "/home/pi/chassis_log.bin"
+	#endif
+
+	tempchassis.open( CHASSISLOG_LOCATION , ios::binary | ios::app ) ;
+	bool chassislogstat = true ;
+	if ( !tempchassis.good() )
+	{
+		cerr << "Housekeeping: Unable to open chassis temperature log stream." << endl ;
+		chassislogstat = false ;
+	}
+	cerr << "Housekeeping: Opened chassis temperature log file" << endl ;
+	tempchassis << "Data format: " << endl
+				<< "tnow (ulonglong, 8 bytes) followed by temperature (in C, no decimal, 1 byte)" << endl ; 
+	
+	#ifndef BOARDLOG_LOCATION
+	#define BOARDLOG_LOCATION "/home/pi/board_log.bin"
+	#endif
+
+	tempboard.open( BOARDLOG_LOCATION , ios::binary | ios::app ) ;
+	bool boardlogstat = true ;
+	if ( !tempboard.good() )
+	{
+		cerr << "Housekeeping: Unable to open board temperature log stream." << endl ;
+		boardlogstat = false ;
+	}
+	cerr << "Housekeeping: Opened board temperature log file" << endl ;
+	tempchassis << "Data format: " << endl
+				<< "tnow (ulonglong, 8 bytes) followed by temperature (in C, no decimal, 1 byte)" << endl ;
+	/*
+	 * List of addresses:
+	 * 1. ADS1115: 0x48
+	 * 2. MCP9808: 0x18 (open), 0x19 (A0), 0x1a (A1), 0x1c (A2)
+	 * 3. 10 DOF Sensor: 0x19, 0x1E, 0x6B, 0x77
+	*/
+	mcp9808 therm[2];
+	ads1115 csensor = ads1115(/* Default: 0x48 or hex('H')*/) ;
+	bool masteractive = therm[0].begin(0x18) ; therm[1].begin(0x1a);
+	csensor.begin();
+	csensor.setGain(GAIN_ONE);
+	while(!done){
+		unsigned long long tnow = timenow() ;
+		boardtemp = therm[0].readTemp();
+		chassistemp = therm[1].readTemp() ;
+		if ( masteractive ){
+		/* Board too hot or too cold: Turn off camera */
+		if ((boardtemp/100. > 50||boardtemp/100. < 0) && cam_off == false)
+		{
+			#ifdef RPI
+			gpioWrite(17,0);
+			#endif
+			if (camlog.good()) camlog << tnow << " board overheat detected, turning off camera" << endl ;
+			cam_off = true ;
+		}
+		/**********************************************/
+
+		/* Board has cooled down too far, turn on heater */
+		while ( boardtemp/100. < 0 && cam_off == true ) //board too cold and camera is off
+		{
+			#ifdef RPI
+			gpioWrite(27,1); //turn on heater
+			#endif
+			usleep(5000000) ; //500 ms
+			#ifdef RPI
+			gpioWrite(27,0) ; //turn off heater
+			#endif
+			boardtemp = therm[0].readTemp();
+		}
+		/*************************************************/
+
+		/* Camera off because of CCD over heat and cooldown period has passed */
+		if ( cam_off && ccdoverheat && (camofftime - timenow()<CCD_COOLDOWN_TIME))
+		{
+			#ifdef RPI
+			gpioWrite(17,1);
+			#endif
+			if (camlog.good()) camlog << tnow << " CCD Cooldown period passed, turning on camera" << endl ;
+			cam_off = false ;
+			ccdoverheat = false ;
+			camofftime = INFINITY ;
+		}
+		/**********************************************************************/
+
+		/* Board temperature okay and camera is off, turn on camera */
+		if ( (boardtemp/100. < 50 && boardtemp/100. > 0) && cam_off == false )
+		{
+			cam_off = false ;
+			#ifdef RPI
+			gpioWrite(17,1);
+			#endif
+		}
+		/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+		} //endif masteractive
+		else{
+			/* Camera off because of CCD over heat and cooldown period has passed */
+			if ( cam_off && ccdoverheat && (camofftime - timenow()<CCD_COOLDOWN_TIME))
+			{
+				#ifdef RPI
+				gpioWrite(17,1);
+				#endif
+				if (camlog.good()) camlog << tnow << " CCD Cooldown period passed, turning on camera" << endl ;
+				cam_off = false ;
+				ccdoverheat = false ;
+				camofftime = INFINITY ;
+			}
+			/**********************************************************************/
+			else {
+				#ifdef RPI
+				gpioWrite(17,1);
+				cam_off = false ;
+				#endif
+			}
+		}
+		cerr << "Housekeeping: Board Temp: " << boardtemp / 100.0 << " C,"
+			 << " Chassis Temp: " << chassistemp / 100.0 << " C" << endl ; 
+		if (boardlogstat){
+			put_data(tempboard,tnow);
+			put_data(tempboard,(char)(boardtemp/100));
+		}
+		if (chassislogstat){
+			put_data(tempchassis,tnow);
+			put_data(tempchassis,(char)(chassistemp/100));
+		}
+		int16_t adc0, adc1 ;
+		adc0 = csensor.readADC_SingleEnded(0);
+		adc1 = csensor.readADC_SingleEnded(1);
+		cerr << "Housekeeping: ADC:" << endl
+			 << "Housekeeping: A0: " << adc0 << " V" << endl
+			 << "Housekeeping: A1: " << adc1 << " V" << endl ; //uncalibrated voltage for current
+		usleep(1000000); //every 1s
+	}
     pthread_exit(NULL) ;
 }
 /* End body temperature monitoring thread */
@@ -994,6 +1087,18 @@ void * datavis_thread(void *t)
 /* Data visualization server thread */
 int main ( void )
 {
+	/** Error Log **/
+	ofstream errlog ;
+	#ifndef ERRLOG_LOCATION
+	#define ERRLOG_LOCATION "/home/pi/err_log.txt"
+	#endif
+
+	errlog.open(ERRLOG_LOCATION,ios::app) ;
+	if(!errlog.good())
+	{
+		cerr << "Error: Unable to open error log stream." << endl ;
+	}
+    /***************/
     /* Setup GPIO */
     gpio_status = false;
     #ifdef RPI
@@ -1015,6 +1120,7 @@ int main ( void )
     {
         perror("Main: SIGTERM Handler") ;
         cerr << "Main: SIGTERM Handler failed to install" << endl ;
+		if (errlog.good()) errlog << "Main: SIGTERM Handler failed to install, errno" << errno << endl ;
     }
 	memset(&action[1], 0, sizeof(struct sigaction)) ;
 	action[1].sa_handler = term ;
@@ -1022,6 +1128,7 @@ int main ( void )
     {
         perror("Main: SIGINT Handler") ;
         cerr << "Main: SIGINT Handler failed to install" << endl ;
+		if (errlog.good()) errlog << "Main: SIGINT Handler failed to install, errno" << errno << endl ;
     }
     memset(&action[2], 0, sizeof(struct sigaction)) ;
 	action[2].sa_handler = overheat ;
@@ -1029,6 +1136,7 @@ int main ( void )
     {
         perror("Main: SIGILL Handler") ;
         cerr << "Main: SIGILL Handler failed to install" << endl ;
+		if (errlog.good()) errlog << "Main: SIGILL Handler failed to install, errno" << errno << endl ;
     }
     cerr << "Main: Interrupt handlers are set up." << endl ;
     /* End set up interrupt handler */
@@ -1037,6 +1145,7 @@ int main ( void )
     if ( getcwd(curr_dir,sizeof(curr_dir)) == NULL ) //can't get pwd? Something is seriously wrong. System is shutting down.
 	{
 		perror("Main: getcwd() error, shutting down.") ;
+		if (errlog.good()) errlog << "Main: getcwd() error, shutting down. errno" << errno << endl ;
 		sys_poweroff() ;
 		return 1 ;
 	}
@@ -1069,6 +1178,7 @@ int main ( void )
     rc0 = pthread_create(&thread0,&attr,camera_thread,(void *)0);
     if (rc0){
         cerr << "Main: Error: Unable to create camera thread " << rc0 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to create camera thread. errno" << errno << endl ;
         exit(-1) ; 
     }
 
@@ -1076,14 +1186,14 @@ int main ( void )
     rc1 = pthread_create(&thread1,&attr,housekeeping_thread,(void *)1);
     if (rc1){
         cerr << "Main: Error: Unable to create housekeeping thread " << rc1 << endl ;
-        exit(-1) ; 
+		if (errlog.good()) errlog << "Main: Error: Unable to create housekeeping thread. errno" << errno << endl ; 
     }
 
 	cerr << "Main: Creating datavis thread" << endl;
 	rc2 = pthread_create(&thread2,&attr,datavis_thread,(void *)2);
     if (rc2){
         cerr << "Main: Error: Unable to create datavis thread " << rc2 << endl ;
-        exit(-1) ; 
+		if (errlog.good()) errlog << "Main: Error: Unable to create datavis thread. errno" << errno << endl ;
     }
 
     pthread_attr_destroy(&attr) ;
@@ -1092,6 +1202,7 @@ int main ( void )
     if (rc0)
     {
         cerr << "Main: Error: Unable to join camera thread" << rc0 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to join camera thread. errno" << errno << endl ;
         exit(-1);
     }
     cerr << "Main: Completed camera thread, exited with status " << status << endl ;
@@ -1100,6 +1211,7 @@ int main ( void )
     if (rc1)
     {
         cerr << "Main: Error: Unable to join housekeeping thread" << rc1 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to join housekeeping thread. errno" << errno << endl ;
         exit(-1);
     }
     cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
@@ -1108,6 +1220,7 @@ int main ( void )
     if (rc2)
     {
         cerr << "Main: Error: Unable to join datavis thread" << rc2 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to join datavis thread. errno" << errno << endl ;
         exit(-1);
     }
     cerr << "Main: Completed datavis thread, exited with status " << status << endl ;
