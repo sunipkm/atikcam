@@ -44,7 +44,7 @@ def animate(i):
         print("Socket created successfully")
         while True:
             try:
-                s.connect(('192.168.1.4',port))
+                s.connect(('192.168.1.8',port))
                 break
             except Exception:
                 continue

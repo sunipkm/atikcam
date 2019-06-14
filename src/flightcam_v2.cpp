@@ -949,7 +949,7 @@ void * datavis_thread(void *t)
     } 
 
 	struct timeval timeout;      
-    timeout.tv_sec = 2;
+    timeout.tv_sec = 5;
     timeout.tv_usec = 0;
 
     if (setsockopt (server_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
@@ -977,12 +977,10 @@ void * datavis_thread(void *t)
     }
 	while(!done)
 	{
-		cerr << "DataVis: In while" << done << endl ;
 		valread = 0 ;
         char recv_buf[32] = {0} ;
 		//cerr << "DataVis: " << global_p.a.exposure << endl ;
         for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) ; i++ ){
-			cerr << "DataVis: In for" << done << endl ;
 			if ( done ) break;
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
