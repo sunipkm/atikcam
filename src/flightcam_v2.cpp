@@ -947,6 +947,19 @@ void * datavis_thread(void *t)
         perror("setsockopt"); 
         //exit(EXIT_FAILURE); 
     } 
+
+	struct timeval timeout;      
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 0;
+
+    if (setsockopt (sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+                sizeof(timeout)) < 0)
+        perror("setsockopt failed\n");
+
+    if (setsockopt (sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+                sizeof(timeout)) < 0)
+        perror("setsockopt failed\n");
+
     address.sin_family = AF_INET; 
     address.sin_addr.s_addr = INADDR_ANY; 
     address.sin_port = htons( PORT ); 
