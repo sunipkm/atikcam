@@ -976,7 +976,7 @@ void * datavis_thread(void *t)
             	perror("accept"); 
 				cerr << "DataVis: Accept from socket error!" <<endl ;
         	}
-            ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,MSG_DONTWAIT);
+            ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,0);
 			//cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
 			if ( numsent != PACK_SIZE ){
 				perror("DataVis: Send: ");
