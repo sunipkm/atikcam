@@ -7,6 +7,13 @@ import datetime
 import astropy.io.fits as pf
 import cv2
 import socket
+import sys
+
+if len(sys.argv)<2:
+    print("Invocation: python client.py <Server IP>")
+    sys.exit()
+
+ip = sys.argv[1]
 
 def timenow():
     return int((datetime.datetime.now().timestamp()*1e3))
@@ -44,7 +51,7 @@ def animate(i):
         print("Socket created successfully")
         while True:
             try:
-                s.connect(('192.168.1.8',port))
+                s.connect((ip,port))
                 break
             except Exception:
                 continue
