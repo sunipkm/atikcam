@@ -928,7 +928,6 @@ void * housekeeping_thread(void *t)
 /* Data visualization server thread */
 void * datavis_thread(void *t)
 {
-	sleep(10); //let others get ready
 	int server_fd, new_socket, valread; 
     struct sockaddr_in address; 
     int opt = 1; 
