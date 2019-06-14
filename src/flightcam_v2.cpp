@@ -968,7 +968,8 @@ void * datavis_thread(void *t)
 		valread = 0 ;
         char recv_buf[32] = {0} ;
 		//cerr << "DataVis: " << global_p.a.exposure << endl ;
-        for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) && (!done) ; i++ ){
+        for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) ; i++ ){
+			if ( done ) break;
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
             	perror("accept"); 
