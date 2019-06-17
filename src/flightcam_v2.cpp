@@ -984,12 +984,12 @@ void * datavis_thread(void *t)
         for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) ; i++ ){
 			if ( done ) break;
 			cerr << "DataVis: Loop: Server File: " << server_fd << endl ;
-			if ((new_socket = accept4(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen,SOCK_NONBLOCK))<0) 
+			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
             	perror("accept"); 
 				cerr << "DataVis: Accept from socket error!" <<endl ;
         	}
-            ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,MSG_DONTWAIT);
+            ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,0);
 			//cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
 			if ( numsent != PACK_SIZE ){
 				perror("DataVis: Send: ");
