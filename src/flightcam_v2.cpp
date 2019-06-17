@@ -952,13 +952,13 @@ void * datavis_thread(void *t)
     timeout.tv_sec = 5;
     timeout.tv_usec = 0;
 
-    if (setsockopt (server_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
-                sizeof(timeout)) < 0)
-        perror("setsockopt failed\n");
+    // if (setsockopt (server_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+    //             sizeof(timeout)) < 0)
+    //     perror("setsockopt failed\n");
 
-    if (setsockopt (server_fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
-                sizeof(timeout)) < 0)
-        perror("setsockopt failed\n");
+    // if (setsockopt (server_fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+    //             sizeof(timeout)) < 0)
+    //     perror("setsockopt failed\n");
 
     address.sin_family = AF_INET; 
     address.sin_addr.s_addr = INADDR_ANY; 
