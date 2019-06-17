@@ -1078,19 +1078,19 @@ int main ( void )
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
 
-    cerr << "Main: Creating camera thread" << endl ;
-    rc0 = pthread_create(&thread0,&attr,camera_thread,(void *)0);
-    if (rc0){
-        cerr << "Main: Error: Unable to create camera thread " << rc0 << endl ;
-        exit(-1) ; 
-    }
+    // cerr << "Main: Creating camera thread" << endl ;
+    // rc0 = pthread_create(&thread0,&attr,camera_thread,(void *)0);
+    // if (rc0){
+    //     cerr << "Main: Error: Unable to create camera thread " << rc0 << endl ;
+    //     exit(-1) ; 
+    // }
 
-	cerr << "Main: Creating housekeeping thread" << endl ;
-    rc1 = pthread_create(&thread1,&attr,housekeeping_thread,(void *)1);
-    if (rc1){
-        cerr << "Main: Error: Unable to create housekeeping thread " << rc1 << endl ;
-        exit(-1) ; 
-    }
+	// cerr << "Main: Creating housekeeping thread" << endl ;
+    // rc1 = pthread_create(&thread1,&attr,housekeeping_thread,(void *)1);
+    // if (rc1){
+    //     cerr << "Main: Error: Unable to create housekeeping thread " << rc1 << endl ;
+    //     exit(-1) ; 
+    // }
 
 	cerr << "Main: Creating datavis thread" << endl;
 	rc2 = pthread_create(&thread2,&attr,datavis_thread,(void *)2);
@@ -1101,21 +1101,21 @@ int main ( void )
 
     pthread_attr_destroy(&attr) ;
 
-    rc0 = pthread_join(thread0,&status) ;
-    if (rc0)
-    {
-        cerr << "Main: Error: Unable to join camera thread" << rc0 << endl ;
-        exit(-1);
-    }
-    cerr << "Main: Completed camera thread, exited with status " << status << endl ;
+    // rc0 = pthread_join(thread0,&status) ;
+    // if (rc0)
+    // {
+    //     cerr << "Main: Error: Unable to join camera thread" << rc0 << endl ;
+    //     exit(-1);
+    // }
+    // cerr << "Main: Completed camera thread, exited with status " << status << endl ;
 
-    rc1 = pthread_join(thread1,&status) ;
-    if (rc1)
-    {
-        cerr << "Main: Error: Unable to join housekeeping thread" << rc1 << endl ;
-        exit(-1);
-    }
-    cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
+    // rc1 = pthread_join(thread1,&status) ;
+    // if (rc1)
+    // {
+    //     cerr << "Main: Error: Unable to join housekeeping thread" << rc1 << endl ;
+    //     exit(-1);
+    // }
+    // cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
 
 	rc2 = pthread_join(thread2,&status) ;
     if (rc2)
