@@ -144,6 +144,8 @@ typedef union{
 packetize global_p ;
 /* Packet Serializer */
 
+unsigned long long int timenow();
+
 /* Housekeeping Log in binary */
 typedef union flb { float f ; char b[sizeof(float)] ; } flb ;
 typedef union shb { unsigned short s ; char b[sizeof(unsigned short)] ; } shb ;
