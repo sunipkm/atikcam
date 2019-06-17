@@ -934,7 +934,7 @@ void * datavis_thread(void *t)
     int addrlen = sizeof(address);  
        
     // Creating socket file descriptor 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
+    if ((server_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) == 0) 
     { 
         perror("socket failed"); 
         //exit(EXIT_FAILURE); 
