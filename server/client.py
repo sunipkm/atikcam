@@ -38,17 +38,19 @@ port = 12376
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
 
-im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),vmin=0,vmax=65535,animated=True,cmap='bone')
+im = plt.imshow(np.zeros((812,1230,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone')
 a = image()
 
 def animate(i):
     global a
+    print("Frame: ",i)
+    k = i
     val = ''.encode('utf-8')
-    print("Receiving %d packets:"%(1))
-    for i in range(1):
+    #print("Receiving %d packets:"%(1))
+    for j in range(1):
         s = socket.socket()
         temp = ''.encode('utf-8')
-        print("Socket created successfully")
+        #print("Socket created successfully")
         while True:
             try:
                 s.connect((ip,port))
@@ -66,24 +68,29 @@ def animate(i):
     c.memmove(c.addressof(a),val,c.sizeof(image))
     img = np.array(a.picdata[0:a.imgsize])
     data = np.reshape(img,(a.pixy,a.pixx))
+    # if i==2:
+    #     print("Saving...")
+    #     np.save('image',data)
     print(a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100))
     # x0 = 0 ; x1 = 1260
     # xl = (x1 - x0)//4
-    # img = np.zeros((data[110:950,0:1260].shape[0],data[110:950,0:1260].shape[1],3),dtype=np.uint8)
-    # col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xaa,0x00,0x00),(0xff,0x00,0x00))
-    # for k in range(4):
-	# #plt.figure(figsize=(6,12))
-    #     dat = np.zeros(data[110:950,x0+k*xl:x0+(k+1)*xl].shape,dtype=np.float64)
-    #     dat += data[110:950,x0+k*xl:x0+(k+1)*xl]
-    #     if True:
-    #         dat = dat/65536.
-    #         for z in range(3):
-    #             img[:,x0+k*xl:x0+(k+1)*xl,z] += (dat*col[k][z]).astype(np.uint8)
+    subimg = data[140:952,70:1300]
+    img = np.zeros((data[140:952,70:1300].shape[0],data[140:952,70:1300].shape[1],3),dtype=np.uint8)
+    col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xff,0xff,0xff),(0xff,0x00,0x00))
+    bounds = [0,297,625,940,1230]
+    for j in range(4):
+        dat = np.array(subimg[:,bounds[j]:bounds[j+1]],dtype=np.float64)
+        if True:
+            dat = dat/65535.
+            dat -= dat.min()
+            dat /= dat.max()
+            for z in range(3):
+                img[:,bounds[j]:bounds[j+1],z] += (dat*col[j][z]).astype(np.uint8)
 	# 		#plt.colorbar()
-    im.set_array(data)
+    im.set_array(img)
     return im,
 
 animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
