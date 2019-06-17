@@ -975,6 +975,7 @@ void * datavis_thread(void *t)
         perror("listen"); 
         //exit(EXIT_FAILURE); 
     }
+	cerr << "DataVis: Main: Server File: " << server_fd << endl ;
 	while(!done)
 	{
 		valread = 0 ;
@@ -982,6 +983,7 @@ void * datavis_thread(void *t)
 		//cerr << "DataVis: " << global_p.a.exposure << endl ;
         for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) ; i++ ){
 			if ( done ) break;
+			cerr << "DataVis: Loop: Server File: " << server_fd << endl ;
 			if ((new_socket = accept4(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen,SOCK_NONBLOCK))<0) 
         	{ 
             	perror("accept"); 
