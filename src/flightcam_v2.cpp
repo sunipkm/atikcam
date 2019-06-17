@@ -180,7 +180,7 @@ int save(const char *fileName , image * data) {
     fits_write_key(fptr, TUSHORT, "BSCALE", &bscale, NULL, &status);
     fits_write_key(fptr, TFLOAT, "EXPOSURE", &(data->exposure), NULL, &status);
     fits_write_key(fptr, TSHORT, "TEMP", &(data->ccdtemp), NULL, &status);
-    fits_write_key(fptr, TULONGLONG, "TIMESTAMP", &(data->tnow),NULL, &status);
+    fits_write_key(fptr, TLONGLONG, "TIMESTAMP", &(data->tnow),NULL, &status);
     long fpixel[] = { 1, 1 };
     fits_write_pix(fptr, TUSHORT, fpixel, data->imgsize, data->picdata, &status);
     fits_close_file(fptr, &status);
