@@ -1016,6 +1016,10 @@ void * housekeeping_thread(void *t)
 			 << "Housekeeping: A1: " << adc1 << " V" << endl ; //uncalibrated voltage for current
 		usleep(1000000); //every 1s
 	}
+	#ifdef RPI //ensure camera and heater are OFF
+	gpioWrite(17,0) ;
+	gpioWrite(27,0) ;
+	#endif
     pthread_exit(NULL) ;
 }
 /* End body temperature monitoring thread */
