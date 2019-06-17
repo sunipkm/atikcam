@@ -921,7 +921,7 @@ void * housekeeping_thread(void *t)
 	 * 3. 10 DOF Sensor: 0x19, 0x1E, 0x6B, 0x77
 	*/
 	mcp9808 therm[2];
-	ads1115 csensor = ads1115(/* Default: 0x48 or hex('H')*/) ;
+	ads1115 csensor = ads1115(0x48/* Default: 0x48 or hex('H')*/) ;
 	bool masteractive = therm[0].begin(0x18) ; therm[1].begin(0x1a);
 	csensor.begin();
 	csensor.setGain(GAIN_ONE);

@@ -33,7 +33,7 @@ class image(c.Structure):
         ('unused2',1792*c.c_ubyte)
     ]
 
-port = 12376
+port = 12345
 
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
