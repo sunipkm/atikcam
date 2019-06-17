@@ -100,7 +100,7 @@ ofstream errlog ;
 volatile int boardtemp , chassistemp ; //globals that both threads can access
 
 #ifndef PORT
-#define PORT 12345
+#define PORT 12376
 #endif //PORT
 
 #ifndef SERVER_IP
