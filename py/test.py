@@ -143,7 +143,7 @@ fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s ms, Exposure: %f s" % ( datetime.datetime.fromtimestamp(timenow()*1e-3), 3.0))
 extent = 20,1260,110,950
 
-im = plt.imshow(np.zeros((840,1240,3),dtype=np.uint8)+0xff, animated=True,extent=extent)
+im = plt.imshow(np.zeros((1040,1392),dtype=np.uint16),vmin=0,vmax=65535, animated=True,extent=extent,cmap='bone')
 
 def animate(i):
     global cam
@@ -153,21 +153,21 @@ def animate(i):
     cam.optimumExposure()
     #cam.save()
     fig.suptitle("Timestamp: %s ms, Exposure: %f s" % ( datetime.datetime.fromtimestamp(timestamp*1e-3), exposure))
-    x0 = 0 ; x1 = 1260
-    xl = (x1 - x0)//4
-    img = np.zeros((data[110:950,0:1260].shape[0],data[110:950,0:1260].shape[1],3),dtype=np.uint8)
-    col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xaa,0x00,0x00),(0xff,0x00,0x00))
-    for k in range(4):
+    #x0 = 0 ; x1 = 1260
+    #xl = (x1 - x0)//4
+    #img = np.zeros((data[110:950,0:1260].shape[0],data[110:950,0:1260].shape[1],3),dtype=np.uint8)
+    #col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xaa,0x00,0x00),(0xff,0x00,0x00))
+    #for k in range(4):
 	#plt.figure(figsize=(6,12))
-        dat = np.zeros(data[110:950,x0+k*xl:x0+(k+1)*xl].shape,dtype=np.float64)
-        dat += data[110:950,x0+k*xl:x0+(k+1)*xl]
-        if True:
-            dat = dat/65536.
-            for z in range(3):
-                img[:,x0+k*xl:x0+(k+1)*xl,z] += (dat*col[k][z]).astype(np.uint8)
+    #    dat = np.zeros(data[110:950,x0+k*xl:x0+(k+1)*xl].shape,dtype=np.float64)
+    #    dat += data[110:950,x0+k*xl:x0+(k+1)*xl]
+    #    if True:
+    #        dat = dat/65536.
+    #        for z in range(3):
+    #            img[:,x0+k*xl:x0+(k+1)*xl,z] += (dat*col[k][z]).astype(np.uint8)
 			#plt.colorbar()
-    im.set_array(img)
-    time.sleep(2)
+    im.set_array(data)
+    time.sleep(1)
     return im,
 
 animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False)
