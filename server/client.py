@@ -43,7 +43,7 @@ port = 12345
 
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
-extent=(-1392/2*0.1/3,1392*0.1/6,-1040*0.1/6,1040*0.1/6)
+extent=(-1230/2*0.1/3,1230*0.1/6,-812*0.1/6,812*0.1/6)
 fig.text(50,-5,r'$500 \pm 5~nm$')
 im = plt.imshow(np.zeros((812,1230,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
 a = image()
