@@ -43,7 +43,7 @@ port = 12345
 
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
-extent=(-1230/2*0.1/3,1230*0.1/6,-812*0.1/6,812*0.1/6)
+extent=(-1230/2*0.09/3,1230*0.09/6,-812*0.09/6,812*0.09/6)
 fig.text(50,-5,r'$500 \pm 5~nm$')
 im = plt.imshow(np.zeros((812,1230,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
 a = image()
@@ -51,7 +51,6 @@ a = image()
 def animate(i):
     global a
     print("Frame: ",i)
-    k = i
     val = ''.encode('utf-8')
     #print("Receiving %d packets:"%(1))
     for j in range(1):
@@ -82,8 +81,8 @@ def animate(i):
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
-    plt.xticks([-20,-15,-10,-5,0,5,10,15,20],[r'$-20^\circ$',r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$',r'$20^\circ$'])
-    plt.yticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
+    plt.xticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
+    plt.yticks([-12,-10,-5,0,5,10,12],[r'$-12^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$12^\circ$'])
     fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f$^\circ$C, Instrument Temperature: %.2f$^\circ$C"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100,a.boardtemp/100))
     plt.text(80,-10,r'$500 \pm 5~nm$')
     plt.text(390,-10,r'$589 \pm 5~nm$')
@@ -105,7 +104,7 @@ def animate(i):
                 img[:,bounds[j]:bounds[j+1],z] += (dat*col[j][z]).astype(np.uint8)
 	# 		#plt.colorbar()
     im.set_array(img)
-    print("\x1b[A")
+    print("\x1b[A\x1b[A")
     return im,
 
 animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
