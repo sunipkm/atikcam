@@ -105,7 +105,7 @@ def animate(i):
                 img[:,bounds[j]:bounds[j+1],z] += (dat*col[j][z]).astype(np.uint8)
 	# 		#plt.colorbar()
     im.set_array(img)
-    print("\x1b[A","\x1b[A")
+    print("\x1b[A")
     return im,
 
 animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
