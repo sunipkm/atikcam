@@ -106,5 +106,5 @@ def animate(i):
     print("\x1b[A""\x1b[A")
     return im,
 
-animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
+animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=500)
 plt.show()
