@@ -81,8 +81,11 @@ def animate(i):
     print(a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
-    fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100))
-    plt.text(50,-5,r'$500 \pm 5~nm$')
+    fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f, Instrument Temperature: %.2f"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100,a.chassistemp/100))
+    plt.text(80,-10,r'$500 \pm 5~nm$')
+    plt.text(390,-10,r'$589 \pm 5~nm$')
+    plt.text(700,-10,r'$770 \pm 5~nm$')
+    plt.text(1000,-10,r'$700 \pm 5~nm$')    
     # x0 = 0 ; x1 = 1260
     # xl = (x1 - x0)//4
     subimg = data[140:952,70:1300]
