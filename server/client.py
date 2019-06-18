@@ -9,6 +9,12 @@ import cv2
 import socket
 import sys
 
+from matplotlib import rc
+rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+rc('text', usetex=True)
+
 if len(sys.argv)<2:
     print("Invocation: python client.py <Server IP>")
     sys.exit()
@@ -38,6 +44,7 @@ port = 12345
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
 
+fig.text(r'$500 \pm 5~nm$',position=(50,-5))
 im = plt.imshow(np.zeros((812,1230,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone')
 a = image()
 
