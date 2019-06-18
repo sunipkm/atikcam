@@ -43,9 +43,9 @@ port = 12345
 
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
-
+extent=(-1392/2*0.1/3,1392*0.1/6,-1040*0.1/6,1040*0.1/6)
 fig.text(50,-5,r'$500 \pm 5~nm$')
-im = plt.imshow(np.zeros((812,1230,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone')
+im = plt.imshow(np.zeros((812,1230,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
 a = image()
 
 def animate(i):
@@ -81,7 +81,9 @@ def animate(i):
     print(a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
-    fig.canvas.set_window_title(r"CoMIC Instrument Monitor: Frame %d"%(i))
+    fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
+    plt.xticks([-20,-15,-10,-5,0,5,10,15,20],[r'$-20^\circ$',r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$',r'$20^\circ$'])
+    plt.yticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
     fig.suptitle(r"Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f $^\circ$, Instrument Temperature: %.2f $^\circ$"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100,a.boardtemp/100))
     plt.text(80,-10,r'$500 \pm 5~nm$')
     plt.text(390,-10,r'$589 \pm 5~nm$')
