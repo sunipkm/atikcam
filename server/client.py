@@ -10,7 +10,7 @@ import socket
 import sys
 
 from matplotlib import rc
-rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':[28]})
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
 rc('text', usetex=True)
