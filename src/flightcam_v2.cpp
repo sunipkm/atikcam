@@ -82,6 +82,8 @@ using namespace std ;
 #define PIX_BIN 1
 #endif
 
+pthread_mutex_t lock_data ;
+
 static AtikCamera *devices[MAX] ;
 bool gpio_status;
 volatile sig_atomic_t done = 0 ; //global interrupt handler
@@ -813,7 +815,9 @@ void * camera_thread(void *t)
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
 				
 				#ifdef DATAVIS
+				pthread_mutex_lock(&lock_data);
 				memcpy(&(global_p.a),imgdata,sizeof(image));
+				pthread_mutex_unlock(&lock_data);
 				// global_p.a.tnow = tnow ;
 				// global_p.a.pixx = width ;
 				// global_p.a.pixy = height ;
@@ -1086,7 +1090,9 @@ void * datavis_thread(void *t)
             	perror("accept"); 
 				cerr << "DataVis: Accept from socket error!" <<endl ;
         	}
+			pthread_mutex_lock(&lock_data);
             ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,0);
+			pthread_mutex_unlock(&lock_data);
 			//cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
 			if ( numsent != PACK_SIZE ){
 				perror("DataVis: Send: ");
