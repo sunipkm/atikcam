@@ -873,7 +873,7 @@ void * camera_thread(void *t)
 			} //loop 3
 			device -> close() ;
 			delete [] picdata ;
-			delete [] imgdata ;
+			delete imgdata ;
 			delete[] devcap ;
 		} //loop 2
 		firstrun = 0 ;
