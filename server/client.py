@@ -50,7 +50,6 @@ a = image()
 
 def animate(i):
     global a
-    print("Frame: ",i)
     val = ''.encode('utf-8')
     #print("Receiving %d packets:"%(1))
     for j in range(1):
@@ -77,12 +76,12 @@ def animate(i):
     # if i==2:
     #     print("Saving...")
     #     np.save('image',data)
-    print(a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
+    print("Frame: ",i,a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
     plt.xticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
-    plt.yticks([-12,-10,-5,0,5,10,12],[r'$-12^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$12^\circ$'])
+    plt.yticks([-10,-5,0,5,10],[r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$'])
     fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f$^\circ$C, Instrument Temperature: %.2f$^\circ$C"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100,a.boardtemp/100))
     plt.text(80,-10,r'$500 \pm 5~nm$')
     plt.text(390,-10,r'$589 \pm 5~nm$')
@@ -104,7 +103,7 @@ def animate(i):
                 img[:,bounds[j]:bounds[j+1],z] += (dat*col[j][z]).astype(np.uint8)
 	# 		#plt.colorbar()
     im.set_array(img)
-    print("\x1b[A\x1b[A")
+    print("\x1b[A")
     return im,
 
 animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=1000)
