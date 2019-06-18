@@ -799,7 +799,7 @@ void * camera_thread(void *t)
 				#endif
 				/** Post-processing **/
 				gfname = to_string(tnow) + ".fit[compress]" ;
-				image * imgdata = new image ;
+				//image * imgdata = new image ;
                 
                 width  = device -> imageWidth(pixelCX,pix_bin) ;
                 height = device -> imageHeight(pixelCY,pix_bin) ;
@@ -873,6 +873,7 @@ void * camera_thread(void *t)
 			} //loop 3
 			device -> close() ;
 			delete [] picdata ;
+			delete [] imgdata ;
 			delete[] devcap ;
 		} //loop 2
 		firstrun = 0 ;
