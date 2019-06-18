@@ -654,8 +654,8 @@ void * camera_thread(void *t)
 				cerr << "Error: Could not open filestream to write data to." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
-				delete [] picdata ;
-				delete[] devcap  ;
+				delete picdata ;
+				delete devcap  ;
 				device -> close() ;
 				break ;
 			}
@@ -680,8 +680,8 @@ void * camera_thread(void *t)
 				cerr << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
-				delete [] picdata ;
-				delete[] devcap ;
+				delete picdata ;
+				delete devcap ;
 				device -> close() ;
 				break ;
 			}
@@ -834,8 +834,8 @@ void * camera_thread(void *t)
 					cerr << "Error: Could not open filestream to write data to." << endl ;
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
-					delete [] picdata ;
-					delete [] devcap  ;
+					delete picdata ;
+					delete devcap  ;
 					device -> close() ;
 					break ;
 				}
@@ -872,9 +872,9 @@ void * camera_thread(void *t)
 
 			} //loop 3
 			device -> close() ;
-			delete [] picdata ;
+			delete picdata ;
 			delete imgdata ;
-			delete[] devcap ;
+			delete devcap ;
 		} //loop 2
 		firstrun = 0 ;
 	} while ( ! done ) ; //loop 1
