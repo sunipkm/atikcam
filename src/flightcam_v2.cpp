@@ -559,7 +559,7 @@ void * camera_thread(void *t)
 				cerr << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
-				delete[] devcap ;
+				delete devcap ;
 				device -> close() ;
 				break ;
 			}
@@ -615,7 +615,7 @@ void * camera_thread(void *t)
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete[] devcap ;
+				delete devcap ;
 				device -> close() ;
 				break ;
 			}
@@ -627,7 +627,7 @@ void * camera_thread(void *t)
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not get data off of the camera. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete[] devcap  ;
+				delete devcap  ;
 				device -> close() ;
 				break ;
 			}
@@ -815,9 +815,7 @@ void * camera_thread(void *t)
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
 				
 				#ifdef DATAVIS
-				pthread_mutex_lock(&lock_data);
 				memcpy(&(global_p.a),imgdata,sizeof(image));
-				pthread_mutex_unlock(&lock_data);
 				// global_p.a.tnow = tnow ;
 				// global_p.a.pixx = width ;
 				// global_p.a.pixy = height ;
@@ -861,7 +859,7 @@ void * camera_thread(void *t)
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Setting minimum exposure." << endl ;
 					// delete [] picdata ;
-					// delete[] devcap ;
+					// delete devcap ;
 					// break ;
 					exposure = minShortExposure ;
 				}
@@ -1091,9 +1089,7 @@ void * datavis_thread(void *t)
             	perror("accept"); 
 				cerr << "DataVis: Accept from socket error!" <<endl ;
         	}
-			pthread_mutex_lock(&lock_data);
             ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,0);
-			pthread_mutex_unlock(&lock_data);
 			//cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
 			if ( numsent != PACK_SIZE ){
 				perror("DataVis: Send: ");
