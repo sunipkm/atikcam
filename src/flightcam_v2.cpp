@@ -1118,7 +1118,7 @@ void * datavis_thread(void *t)
 	{
 		valread = 0 ;
         char recv_buf[32] = {0} ;
-		cerr << "DataVis: " << global_p.a.tnow << endl ;
+		cerr << "DataVis: Time Time Time Time " << global_p.a.tnow << endl ;
 		//cerr << "DataVis: " << global_p.a.exposure << endl ;
         for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) ; i++ ){
 			if (done)
