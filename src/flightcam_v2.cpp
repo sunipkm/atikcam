@@ -155,7 +155,7 @@ typedef union{
 } packetize ;
 packetize global_p ;
 
-void * convert_to_packet(image * a , datavis_p * b)
+void convert_to_packet(image * a , datavis_p * b)
 {
 	b -> tnow = a -> tnow ;
 	b -> exposure = (a -> exposure) ;
