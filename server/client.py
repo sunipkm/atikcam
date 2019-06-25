@@ -30,7 +30,6 @@ class image(c.Structure):
         ('exposure',c.c_float),
         ('pixx',c.c_ushort),
         ('pixy',c.c_ushort),
-        ('imgsize',c.c_int),
         ('ccdtemp',c.c_short),
         ('boardtemp',c.c_short),
         ('chassistemp',c.c_short),
@@ -70,7 +69,7 @@ def animate(i):
         s.close()
         val += temp
     c.memmove(c.addressof(a),val,c.sizeof(image))
-    img = np.array(a.picdata[0:a.imgsize])
+    img = np.array(a.picdata[0:a.pixx*a.pixy])
     data = np.reshape(img,(a.pixy,a.pixx))
     # if i==2:
     #     print("Saving...")
