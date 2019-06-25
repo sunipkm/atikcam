@@ -136,14 +136,50 @@ typedef struct image {
 /* End internal data structure */
 
 /* Packet Serializer */
+typedef struct {
+	uint64_t tnow ; //timestamp in ms
+	float exposure ; //exposure in ms
+	unsigned short pixx ; //348
+	unsigned short pixy ; //260
+	short ccdtemp ; // temp in C * 100
+	short boardtemp ;
+	short chassistemp ;
+	unsigned char picdata[90480];
+} datavis_p ;
 #ifndef PACK_SIZE
-#define PACK_SIZE sizeof(image)
+#define PACK_SIZE sizeof(datavis_p)
 #endif
 typedef union{
-	image a ;
-	unsigned char buf[sizeof(image)/PACK_SIZE][PACK_SIZE];
+	datavis_p a ;
+	unsigned char buf[sizeof(datavis_p)/PACK_SIZE][PACK_SIZE];
 } packetize ;
 packetize global_p ;
+
+void * convert_to_packet(image * a , datavis_p * b)
+{
+	b -> tnow = a -> tnow ;
+	b -> exposure = (a -> exposure) ;
+	b -> pixx = 348 ;
+	b -> pixy = 260 ;
+	b -> ccdtemp = a -> ccdtemp ;
+	b -> boardtemp = a -> boardtemp ;
+	b -> chassistemp = a -> chassistemp ;
+	uint8_t numbin = (a->pixx)/(b->pixx) ;
+	if (numbin == 1) //no downsample, just copy
+		for (int i = 0 ; i < a -> imgsize ; i++ )
+			b->picdata[i] = (unsigned char)((a->picdata[i])/256);
+	else {
+		for (int i = 0 ; i < 348 * 260 ; i++ )
+		{
+			uint64_t temp = 0 ;
+			for (unsigned char j = 0 ; j < numbin ; j++ )
+				temp += a->picdata[i*numbin + j]
+			b->picdata[i] = (unsigned char)(temp/256/numbin);
+		}
+	}
+	return ;
+}
+
 /* Packet Serializer */
 
 unsigned long long int timenow();
@@ -815,7 +851,7 @@ void * camera_thread(void *t)
                 memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
 				
 				#ifdef DATAVIS
-				memcpy(&(global_p.a),imgdata,sizeof(image));
+				convert_to_packet(imgdata, &(global_p.a));
 				// global_p.a.tnow = tnow ;
 				// global_p.a.pixx = width ;
 				// global_p.a.pixy = height ;

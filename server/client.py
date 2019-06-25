@@ -34,18 +34,17 @@ class image(c.Structure):
         ('ccdtemp',c.c_short),
         ('boardtemp',c.c_short),
         ('chassistemp',c.c_short),
-        ('picdata',1449072*c.c_ushort),
-        ('unused',6*c.c_ubyte),
-        ('unused2',1792*c.c_ubyte)
+        ('picdata',90480*c.c_byte),
     ]
 
 port = 12345
 
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
-extent=(-1230/2*0.09/3,1230*0.09/6,-812*0.09/6,812*0.09/6)
-fig.text(50,-5,r'$500 \pm 5~nm$')
-im = plt.imshow(np.zeros((812,1230,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
+extent=None#(-1230/2*0.09/3,1230*0.09/6,-812*0.09/6,812*0.09/6)
+#fig.text(50,-5,r'$500 \pm 5~nm$')
+#im = plt.imshow(np.zeros((260,384,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
+im = plt.imshow(np.zeros((260,384),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
 a = image()
 
 def animate(i):
@@ -80,29 +79,29 @@ def animate(i):
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
-    plt.xticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
-    plt.yticks([-10,-5,0,5,10],[r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$'])
+    # plt.xticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
+    # plt.yticks([-10,-5,0,5,10],[r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$'])
     fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f$^\circ$C, Instrument Temperature: %.2f$^\circ$C"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100,a.boardtemp/100))
-    plt.text(80,-10,r'$500 \pm 5~nm$')
-    plt.text(390,-10,r'$589 \pm 5~nm$')
-    plt.text(700,-10,r'$770 \pm 5~nm$')
-    plt.text(1000,-10,r'$700 \pm 5~nm$')    
-    # x0 = 0 ; x1 = 1260
-    # xl = (x1 - x0)//4
-    subimg = data[140:952,70:1300]
-    img = np.zeros((data[140:952,70:1300].shape[0],data[140:952,70:1300].shape[1],3),dtype=np.uint8)
-    col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xff,0xff,0xff),(0xff,0x00,0x00))
-    bounds = [0,297,625,940,1230]
-    for j in range(4):
-        dat = np.array(subimg[:,bounds[j]:bounds[j+1]],dtype=np.float64)
-        if True:
-            dat = dat/65535.
-            dat -= dat.min()
-            dat /= dat.max()
-            for z in range(3):
-                img[:,bounds[j]:bounds[j+1],z] += (dat*col[j][z]).astype(np.uint8)
-	# 		#plt.colorbar()
-    im.set_array(img)
+    # plt.text(80,-10,r'$500 \pm 5~nm$')
+    # plt.text(390,-10,r'$589 \pm 5~nm$')
+    # plt.text(700,-10,r'$770 \pm 5~nm$')
+    # plt.text(1000,-10,r'$700 \pm 5~nm$')    
+    # # x0 = 0 ; x1 = 1260
+    # # xl = (x1 - x0)//4
+    # subimg = data[140:952,70:1300]
+    # img = np.zeros((data[140:952,70:1300].shape[0],data[140:952,70:1300].shape[1],3),dtype=np.uint8)
+    # col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xff,0xff,0xff),(0xff,0x00,0x00))
+    # bounds = [0,297,625,940,1230]
+    # for j in range(4):
+    #     dat = np.array(subimg[:,bounds[j]:bounds[j+1]],dtype=np.float64)
+    #     if True:
+    #         dat = dat/65535.
+    #         dat -= dat.min()
+    #         dat /= dat.max()
+    #         for z in range(3):
+    #             img[:,bounds[j]:bounds[j+1],z] += (dat*col[j][z]).astype(np.uint8)
+	# # 		#plt.colorbar()
+    im.set_array(data)
     print("\x1b[A""\x1b[A")
     return im,
 
