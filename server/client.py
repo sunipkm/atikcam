@@ -38,6 +38,7 @@ class image(c.Structure):
 
 port = 12345
 
+print(c.sizeof(image))
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
 extent=None#(-1230/2*0.09/3,1230*0.09/6,-812*0.09/6,812*0.09/6)
