@@ -9,11 +9,11 @@ import cv2
 import socket
 import sys
 
-from matplotlib import rc
-rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':28})
-## for Palatino and other serif fonts use:
-#rc('font',**{'family':'serif','serif':['Palatino']})
-rc('text', usetex=True)
+# from matplotlib import rc
+# rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':28})
+# ## for Palatino and other serif fonts use:
+# #rc('font',**{'family':'serif','serif':['Palatino']})
+# rc('text', usetex=True)
 
 if len(sys.argv)<2:
     print("Invocation: python client.py <Server IP>")
