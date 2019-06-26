@@ -151,7 +151,7 @@ typedef struct {
 #endif
 typedef union{
 	datavis_p a ;
-	unsigned char buf[sizeof(datavis_p)/PACK_SIZE][PACK_SIZE];
+	unsigned char buf [sizeof(datavis_p) / PACK_SIZE] [PACK_SIZE];
 } packetize ;
 packetize global_p ;
 
@@ -164,10 +164,10 @@ void convert_to_packet(image * a , datavis_p * b)
 	b -> ccdtemp = a -> ccdtemp ;
 	b -> boardtemp = a -> boardtemp ;
 	b -> chassistemp = a -> chassistemp ;
-	uint8_t numbin = (a->pixx)/(b->pixx) ;
+	uint8_t numbin = (a->pixx) / (b->pixx) ;
 	if (numbin == 1) //no downsample, just copy
 		for (int i = 0 ; i < a -> imgsize ; i++ )
-			b->picdata[i] = (unsigned char)((a->picdata[i])/256);
+			b->picdata[i] = (unsigned char)((a->picdata[i]) / 256);
 	else {
 		for (unsigned short i = 0 ; i < 260 ; i++ )
 		{
@@ -180,9 +180,7 @@ void convert_to_packet(image * a , datavis_p * b)
 						+ 348*numbin*k /*y axis*/
 						+l /* x axis */]*255.0/65535; //converted to 8 bit
 				temp /= numbin * numbin ;
-				if ( temp > 255 )
-					cerr << "OVERFLOW!" << endl ;
-				b->picdata[i*348+j] = (unsigned char)((temp>255) ? 255 : temp);
+				b->picdata[i*348+j] = (unsigned char)temp;
 			}
 		}
 	}
@@ -246,7 +244,9 @@ int save(const char *fileName , image * data) {
     long fpixel[] = { 1, 1 };
     fits_write_pix(fptr, TUSHORT, fpixel, data->imgsize, data->picdata, &status);
     fits_close_file(fptr, &status);
-    cerr << endl << "Main: Camera Thread: Save: saved to " << fileName << endl << endl;
+	#ifdef SK_DEBUG
+    cerr << endl << "Camera Thread: Save: saved to " << fileName << endl << endl;
+	#endif
   }
   else {
 	  cerr << "Error: " << __FUNCTION__ << " : Could not save image." << endl ;
@@ -266,7 +266,7 @@ int save(const char *fileName, image* data)
 void term (int signum)
 {
 	done = 1 ;
-	cerr << "Interrupt: Received Signal: 0x" << hex << signum << dec << endl ;
+	cerr << "Interrupt Handler: Received Signal: 0x" << hex << signum << dec << endl ;
 	return ;
 }
 
@@ -278,7 +278,7 @@ void overheat(int signum)
 	camofftime = timenow() ;
     ccdoverheat = true ;
 	cam_off = true ;
-    cerr << "Interrupt: Received Signal: 0x" << hex << signum << dec << endl ;
+    cerr << "Interrupt Handler: Received Signal: 0x" << hex << signum << dec << endl ;
     return ;
 }
 /* End Interrupt handler */
@@ -287,6 +287,7 @@ void overheat(int signum)
 #ifdef ENABLE_PWOFF
 void sys_poweroff(void)
 {
+	cerr << "Info: Poweroff instruction received!" << endl ;
 	sync() ;
 	setuid(0) ;
 	reboot(LINUX_REBOOT_CMD_POWER_OFF) ;
@@ -302,6 +303,7 @@ void sys_poweroff(void)
 #ifdef ENABLE_REBOOT
 void sys_reboot(void)
 {
+	cerr << "Info: Reboot instruction received!" << endl ;
 	sync() ;
 	setuid(0) ;
 	reboot(RB_AUTOBOOT) ;
@@ -318,9 +320,11 @@ void sys_reboot(void)
 char space_left(void)
 {
 	boost::filesystem::space_info si = boost::filesystem::space(curr_dir) ;
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : PWD -> " << curr_dir << endl ;
 	long long free_space = (long long) si.available ;
 	cerr << __FUNCTION__ << " : free_space -> " << free_space << endl ;
+	#endif
 	if ( free_space < 1 * 1024 * 1024 )
 	{
 		perror("Not enough free space. Shutting down.\n") ;
@@ -341,14 +345,18 @@ int compare ( const void * a , const void * b)
 /* Time in ms from 1-1-1970 00:00:00 */
 unsigned long long int timenow()
 {
-	return ((std::chrono::duration_cast<std::chrono::milliseconds>((std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now())).time_since_epoch())).count()) ;
+	return ((std::chrono::duration_cast<std::chrono::milliseconds> 
+	((std::chrono::time_point_cast<std::chrono::milliseconds>
+	(std::chrono::system_clock::now())).time_since_epoch())).count()) ;
 }
 /* End time from epoch */
 
 /* Calculate optimum exposure */
 double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize , double exposure )
 {
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : Received exposure: " << exposure << endl ;
+	#endif
 	double result = exposure ;
 	double val ;
 	qsort(picdata,imgsize,sizeof(unsigned short),compare) ;
@@ -363,11 +371,11 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	#ifndef MEDIAN
 	#ifndef PERCENTILE
 	#define PERCENTILE 90.0
-	unsigned char direction ;
+	bool direction ;
 	if ( picdata[0] < picdata[imgsize-1] )
-		direction = 1 ;
+		direction = true ;
 	else
-		direction = 0 ;
+		direction = false ;
 
 	unsigned int coord = floor((PERCENTILE*(imgsize-1)/100.0)) ;
 	if ( direction )
@@ -379,6 +387,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 		val = picdata[imgsize-coord] ;
 	}
 
+	#ifdef SK_DEBUG
 	cerr << "Info: " << __FUNCTION__ << "Direction: " << direction << ", Coordinate: " << coord << endl ;
 	cerr << "Info: " << __FUNCTION__ << "10 values around the coordinate: " << endl ;
 	unsigned int lim2 = imgsize - coord > 3 ? coord + 4 : imgsize - 1 ;
@@ -386,12 +395,13 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	for ( int i = lim1 ; i < lim2 ; i++ )
 		cerr << picdata[i] << " ";
 	cerr << endl ;
+	#endif
 
 	#endif //PERCENTILE
 	#endif //MEDIAN
-
+	#ifdef SK_DEBUG
 	cerr << "In " << __FUNCTION__ << ": Median: " << val << endl ;
-
+	#endif
 	#ifndef PIX_MEDIAN
 	#define PIX_MEDIAN 40000.0
 	#endif
@@ -407,7 +417,9 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 
 	result = ((double)PIX_MEDIAN) * exposure / ((double)val) ;
 
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : Determined exposure from median " << val << ": " << result << endl ;
+	#endif
     
     while ( result > MAX_ALLOWED_EXPOSURE && pix_bin < 4 )
     {
@@ -438,7 +450,9 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 	bool success ;
 	if ( exposure <= maxShortExposure )
 	{
+		#ifdef SK_DEBUG
 		cerr << "Info: Exposure time less than max short exposure, opting for short exposure mode." << endl ;
+		#endif
 		success = device -> readCCD(0,0,pixX,pixY,pix_bin,pix_bin,exposure) ;
 		if ( ! success )
 		{	
@@ -448,7 +462,9 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 	}
 	else if ( exposure > maxShortExposure )
 	{
+		#ifdef SK_DEBUG
 		cerr << "Info: Exposure time greater than max short exposure, opting for long exposure mode." << endl ;
+		#endif
 		success = device ->startExposure(false) ; //false for some gain mode thing
 		if ( ! success )
 		{	
@@ -456,7 +472,9 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 			return success ;
 		}
 		long delay = device -> delay(exposure) ;
+		#ifdef SK_DEBUG
 		cerr << "Info: Long exposure delay set to " << delay << " ms." << endl ;
+		#endif
 		usleep(delay) ;
 		success = device -> readCCD(0,0,pixX,pixY,pix_bin,pix_bin) ;
 		if ( ! success )
@@ -489,8 +507,9 @@ void * camera_thread(void *t)
 		cerr << "Error: Unable to open temperature log stream." << endl ;
 		templogstat = false ;
 	}
-	
+	#ifdef SK_DEBUG
 	cerr << "Info: Opened temperature log file" << endl ;
+	#endif
 	/*********************************/
 
 	/** Camera Missing Log **/
@@ -504,7 +523,9 @@ void * camera_thread(void *t)
 	{
 		cerr << "Error: Unable to open camera log stream." << endl ;
 	}
+	#ifdef SK_DEBUG
 	cerr << "Info: Opened camera log file." << endl ;
+	#endif
 	/************************/
 
 	unsigned char firstrun = 1 ;
@@ -548,9 +569,9 @@ void * camera_thread(void *t)
 			const char * devname ; CAMERA_TYPE type ;
 
 			success1 = device -> getCapabilities(&devname, &type, devcap) ;
-
+			#ifdef SK_DEBUG
 			cerr << "Info: getCapabilities: " << success1 << endl ;
-
+			#endif
 			if ( !success1 ){ //if failed
 				cerr << __FILE__ << ":" << __LINE__ << ":device->getCapabilities()" << endl ;
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": Error: Failed to get device capabilities." << endl ;
@@ -558,7 +579,9 @@ void * camera_thread(void *t)
 				break ; //get out and fall back to the main loop
 			}
 			else {
+				#ifdef SK_DEBUG
 				cerr << "Device: " << "Returned Capabilities" << endl ;
+				#endif
 			}
 
 			unsigned       pixelCX = devcap -> pixelCountX ;
@@ -583,9 +606,9 @@ void * camera_thread(void *t)
 			if ( pix_bin > maxBinX || pix_bin > maxBinY )
 				pix_bin = maxBinX < maxBinY ? maxBinX : maxBinY ; //smaller of the two 
 
-			unsigned       width  = device -> imageWidth(pixelCX,pix_bin) ;
-			unsigned       height = device -> imageHeight(pixelCY,pix_bin) ; 
-
+			unsigned       width  = device -> imageWidth(pixelCX, pix_bin) ;
+			unsigned       height = device -> imageHeight(pixelCY, pix_bin) ; 
+			#ifdef SK_DEBUG
 			cerr << "Device: AtikCapabilities:" << endl ;
 			cerr << "Pixel Count X: " << pixelCX << "; Pixel Count Y: " << pixelCY << endl ;
 			cerr << "Pixel Size X: " << pixelSX << " um; Pixel Size Y: " << pixelSY << " um" << endl ;
@@ -597,7 +620,7 @@ void * camera_thread(void *t)
 			cerr << "Maximum Short Exposure: " << maxShortExposure << " ms" << endl ;
 			cerr << "Binned X width: " << width << endl ;
 			cerr << "Binned Y height: " << height << endl ;
-
+			#endif
 			if ( minShortExposure > maxShortExposure )
 			{
 				#ifdef SK_DEBUG
@@ -631,12 +654,12 @@ void * camera_thread(void *t)
 			{
 				for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 				{
-					success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+					success2 = device -> getTemperatureSensorStatus(sensor, &temp) ;
 					if ( temp > 40.0 )
 						raise(SIGILL);
 					templog << (unsigned char) sensor ;
-					put_data(templog,timenow());
-					put_data(templog,temp);
+					put_data(templog, timenow());
+					put_data(templog, temp);
 					templog << (unsigned char) 0x00 ;
 					#ifdef SK_DEBUG
 					cerr << "Info: Sensor " << sensor << ": Temp: " << temp << " C" << endl ;
@@ -690,7 +713,7 @@ void * camera_thread(void *t)
 			imgdata -> pixy = height ;
             imgdata -> imgsize = width*height ;
 			imgdata -> exposure = exposure ;
-            memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
+            memcpy(&(imgdata->picdata), picdata, width*height *sizeof(unsigned short));
 			//(imgdata -> picdata) = picdata ; // FIX WITH MEMCPY
 
 			if ( save(gfname.c_str(),imgdata) )
@@ -715,7 +738,7 @@ void * camera_thread(void *t)
 			cerr << "Info: Calculating new exposure." << endl ;
 			cerr << "Old Exposure -> " << exposure << " ms," << endl ;
 			#endif
-			exposure = find_optimum_exposure(picdata,imgsize,exposure) ;
+			exposure = find_optimum_exposure(picdata, imgsize, exposure) ;
 			#ifdef SK_DEBUG
 			cerr << "New Exposure -> " << exposure << "ms." << endl ;
 			#endif
@@ -751,7 +774,7 @@ void * camera_thread(void *t)
 					cerr << "Info: Loop: Short exposure mode." << endl ;
 					#endif
 					tnow = timenow() ;
-					success1 = snap_picture(device,pixelCX,pixelCY,picdata,exposure) ;
+					success1 = snap_picture(device, pixelCX, pixelCY, picdata, exposure) ;
 					#ifdef SK_DEBUG
 					cerr << "Info: Loop: Short: " << tnow << " obtained image." << endl ;
 					#endif
@@ -766,10 +789,10 @@ void * camera_thread(void *t)
 					{
 						for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 						{
-							success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+							success2 = device -> getTemperatureSensorStatus (sensor, &temp) ;
 							templog << (unsigned char) sensor ;
-							put_data(templog,timenow());
-							put_data(templog,temp);
+							put_data(templog, timenow());
+							put_data(templog, temp);
 							templog << (unsigned char) 0x00 ;
 							if ( temp > 40.0 )
 								raise(SIGILL);
@@ -797,7 +820,7 @@ void * camera_thread(void *t)
 						if ( omp_get_thread_num( ) == 0 ) //first thread to take pictures
 						{	
 							tnow = timenow() ;
-							success1 = snap_picture ( device,pixelCX,pixelCY,picdata,exposure ) ;
+							success1 = snap_picture ( device, pixelCX, pixelCY, picdata, exposure ) ;
 							#ifdef SK_DEBUG
 							cerr << "Info: Loop: Long: " << tnow << " obtained image." << endl ;
 							#endif
@@ -818,12 +841,12 @@ void * camera_thread(void *t)
 								{
 									for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 									{
-										temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+										temp ; success2 = device -> getTemperatureSensorStatus(sensor, &temp) ;
 										if ( temp > 40 )
 											raise(SIGILL);
 										templog << (unsigned char) sensor ;
-										put_data(templog,timenow());
-										put_data(templog,temp);
+										put_data(templog, timenow());
+										put_data(templog, temp);
 										templog << (unsigned char) 0x00 ;
 										//#ifdef SK_DEBUG
 										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
@@ -846,8 +869,8 @@ void * camera_thread(void *t)
 				gfname = to_string(tnow) + ".fit[compress]" ;
 				//image * imgdata = new image ;
                 
-                width  = device -> imageWidth(pixelCX,pix_bin) ;
-                height = device -> imageHeight(pixelCY,pix_bin) ;
+                width  = device -> imageWidth(pixelCX, pix_bin) ;
+                height = device -> imageHeight(pixelCY, pix_bin) ;
                 
 				imgdata -> tnow = tnow ;
 				imgdata -> pixx = width ;
@@ -857,7 +880,7 @@ void * camera_thread(void *t)
                 imgdata -> ccdtemp = floor(temp*100) ;
                 imgdata -> boardtemp = boardtemp ;
                 imgdata -> chassistemp = chassistemp ;
-                memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
+                memcpy(&(imgdata->picdata), picdata, width*height *sizeof(unsigned short));
 				
 				#ifdef DATAVIS
 				convert_to_packet(imgdata, &(global_p.a));
@@ -871,7 +894,7 @@ void * camera_thread(void *t)
                 // global_p.a.chassistemp = chassistemp ;
 				// cerr << "Camera: " << global_p.a.exposure << endl ;
 				#endif
-                if ( save(gfname.c_str(),imgdata) )
+                if ( save(gfname.c_str(), imgdata) )
 				{
 					#ifdef SK_DEBUG
 					cerr << "Error: Could not open filestream to write data to." << endl ;
@@ -893,7 +916,7 @@ void * camera_thread(void *t)
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: Old exposure: " << old_exposure << " s" << endl ;
 				#endif
-				exposure = find_optimum_exposure(picdata,imgsize,exposure) ;
+				exposure = find_optimum_exposure(picdata, imgsize, exposure) ;
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: New exposure: " << exposure << " s" << endl ;
 				#endif
