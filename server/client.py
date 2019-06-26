@@ -9,11 +9,11 @@ import astropy.io.fits as pf
 import socket
 import sys
 
-# from matplotlib import rc
-# rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':28})
-# ## for Palatino and other serif fonts use:
-# #rc('font',**{'family':'serif','serif':['Palatino']})
-# rc('text', usetex=True)
+from matplotlib import rc
+rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':28})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+rc('text', usetex=True)
 
 if len(sys.argv)<2:
     print("Invocation: python client.py <Server IP>")
@@ -40,11 +40,11 @@ port = 12376
 
 #print(c.sizeof(image))
 fig = plt.figure(figsize=(10,6))
-fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
-x0 = 20
-x1 = 330
-y0 = 25
-y1 = 245
+fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f"%(datetime.datetime.fromtimestamp(timenow()//1e3),0,0))
+x0 = 26
+x1 = 328
+y0 = 30
+y1 = 240
 lx = x1 - x0
 ly = y1 - y0
 bounds = [x0,92,184,255,x1]
@@ -84,13 +84,13 @@ def animate(i):
     # if i==2:
     #     print("Saving...")
     #     np.save('image',data)
-    print("Frame: ",i,a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
+    print("Frame: %d, Exposure: %.3f s, Temp: %.2f, %s" % (i, a.exposure, a.boardtemp/100.,datetime.datetime.fromtimestamp(a.tnow//1e3)))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
     plt.xticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
     plt.yticks([-10,-5,0,5,10],[r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$'])
-    fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f$^\circ$C, Instrument Temperature: %.2f$^\circ$C"%(datetime.datetime.fromtimestamp(a.tnow/1e3),a.exposure,a.ccdtemp/100,a.boardtemp/100))
+    fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f$^\circ$C, Instrument Temperature: %.2f$^\circ$C"%(datetime.datetime.fromtimestamp(a.tnow//1e3),a.exposure,a.ccdtemp/100,a.boardtemp/100))
     # plt.text(80,-10,r'$500 \pm 5~nm$')
     # plt.text(390,-10,r'$589 \pm 5~nm$')
     # plt.text(700,-10,r'$770 \pm 5~nm$')
