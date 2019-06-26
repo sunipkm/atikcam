@@ -81,9 +81,9 @@ def animate(i):
     c.memmove(c.addressof(a),val,c.sizeof(image))
     img = np.array(a.picdata[0:a.pixx*a.pixy],dtype=np.uint8)
     data = np.reshape(img,(a.pixy,a.pixx))
-    if i==2:
-        print("Saving...")
-        np.save('image',data)
+    # if i==2:
+    #     print("Saving...")
+    #     np.save('image',data)
     print("Frame: ",i,a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
@@ -107,7 +107,7 @@ def animate(i):
             for z in range(3):
                 img[:,bounds[j]:bounds[j+1],z] += (dat*col[j][z]).astype(np.uint8)
 	# 		#plt.colorbar()
-    im.set_array(data)
+    im.set_array(img)
     print("\x1b[A""\x1b[A")
     return im,
 
