@@ -175,7 +175,8 @@ void convert_to_packet(image * a , datavis_p * b)
 			{
 				double temp = 0 ;
 				for (unsigned char k = 0 ; k < numbin; k++)
-					temp += a->picdata[i*k*348*numbin+j*k];
+					for ( unsigned char l = 0 ; l < numbin ; l++ )
+						temp += a->picdata[i*numbin*348*numbin+j*numbin+348*numbin*k+l];
 				b->picdata[i*348+j] = (unsigned char)(temp/256/numbin/numbin);
 			}
 		}
