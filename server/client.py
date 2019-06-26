@@ -44,7 +44,7 @@ fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.date
 extent=None#(-1230/2*0.09/3,1230*0.09/6,-812*0.09/6,812*0.09/6)
 #fig.text(50,-5,r'$500 \pm 5~nm$')
 #im = plt.imshow(np.zeros((260,384,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
-im = plt.imshow(np.zeros((260,384),dtype=np.uint8),vmin=0,vmax=256,animated=True,cmap='bone',extent=extent)
+im = plt.imshow(np.zeros((260,384),dtype=np.uint8),vmin=0,vmax=255,animated=True,cmap='bone',extent=extent)
 a = image()
 
 def animate(i):
@@ -72,10 +72,10 @@ def animate(i):
     c.memmove(c.addressof(a),val,c.sizeof(image))
     img = np.array(a.picdata[0:a.pixx*a.pixy],dtype=np.uint8)
     data = np.reshape(img,(a.pixy,a.pixx))
-    # if i==2:
-    #     print("Saving...")
-    #     np.save('image',data)
-    print("Frame: ",i,a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3),data.max())
+    if i==2:
+        print("Saving...")
+        np.save('image',data)
+    print("Frame: ",i,a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
@@ -86,8 +86,6 @@ def animate(i):
     # plt.text(390,-10,r'$589 \pm 5~nm$')
     # plt.text(700,-10,r'$770 \pm 5~nm$')
     # plt.text(1000,-10,r'$700 \pm 5~nm$')    
-    # # x0 = 0 ; x1 = 1260
-    # # xl = (x1 - x0)//4
     # subimg = data[140:952,70:1300]
     # img = np.zeros((data[140:952,70:1300].shape[0],data[140:952,70:1300].shape[1],3),dtype=np.uint8)
     # col = ((0x00,0xff,0x92),(0xff,0xe2,0x00),(0xff,0xff,0xff),(0xff,0x00,0x00))
