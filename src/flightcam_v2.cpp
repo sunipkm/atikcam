@@ -449,6 +449,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 /* Snap picture routine */
 bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsigned short * data , double exposure  )
 {
+	cerr << "Camera Thread: Snapping image, " << exposure << "s exposure" << endl ;
 	bool success ;
 	if ( exposure <= maxShortExposure )
 	{
