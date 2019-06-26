@@ -70,7 +70,7 @@ def animate(i):
         s.close()
         val += temp
     c.memmove(c.addressof(a),val,c.sizeof(image))
-    img = np.array(a.picdata[0:a.pixx*a.pixy])
+    img = np.array(a.picdata[0:a.pixx*a.pixy],dtype=np.uint8)
     data = np.reshape(img,(a.pixy,a.pixx))
     # if i==2:
     #     print("Saving...")
