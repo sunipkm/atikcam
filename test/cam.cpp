@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <string.h>
 #include <fitsio.h>
@@ -104,7 +105,7 @@ int main ( void )
 				#ifdef SK_ATIK_DEBUG
 				time_point<Clock> start = Clock::now();
 				#endif //SK_ATIK_DEBUG
-				success = device->readCCD(0,0,devcap->pixelCountX,devcap->pixelCountY,1,1,0.01) ; //10ms exposure
+				success = device->readCCD(0,0,devcap->pixelCountX,devcap->pixelCountY,1,1,0.005) ; //10ms exposure
 				#ifdef SK_ATIK_DEBUG
 				time_point <Clock> end = Clock::now() ;
 		
@@ -118,6 +119,13 @@ int main ( void )
 				exit(0) ;
 
 				save("short.fits",data,width,height) ;
+
+				ofstream ofile ;
+				ofile.open("data_raw.txt");
+				for (int i = 0 ; i < width*height; i++)
+					ofile << data[i] << " " ;
+				ofile << endl ;
+				ofile.close(); 
 
 				free(data) ;
 			}

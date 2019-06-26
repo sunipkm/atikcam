@@ -50,6 +50,9 @@ using namespace std ;
 #include <pigpio.h>
 #endif
 
+#include <libmcp9808.h>
+#include <libads1115.h>
+
 /* End Headers */
 
 /* Globals */
@@ -79,11 +82,13 @@ using namespace std ;
 #define PIX_BIN 1
 #endif
 
+pthread_mutex_t lock_data ;
+
 static AtikCamera *devices[MAX] ;
 bool gpio_status;
 volatile sig_atomic_t done = 0 ; //global interrupt handler
 volatile bool ccdoverheat = false ; //global ccd temperature status
-
+volatile unsigned long long camofftime = INFINITY ;
 double minShortExposure = -1 ;
 double maxShortExposure = -1 ;
 
@@ -98,6 +103,12 @@ ofstream camlog ;
 ofstream errlog ;
 
 volatile int boardtemp , chassistemp ; //globals that both threads can access
+
+bool cam_off = false ;
+
+#ifndef CCD_COOLDOWN_TIME
+#define CCD_COOLDOWN_TIME 60*1000 // in milliseconds
+#endif
 
 #ifndef PORT
 #define PORT 12376
@@ -125,15 +136,60 @@ typedef struct image {
 /* End internal data structure */
 
 /* Packet Serializer */
+typedef struct {
+	uint64_t tnow ; //timestamp in ms
+	float exposure ; //exposure in ms
+	unsigned short pixx ; //348
+	unsigned short pixy ; //260
+	short ccdtemp ; // temp in C * 100
+	short boardtemp ;
+	short chassistemp ;
+	unsigned char picdata[90480];
+} datavis_p ;
 #ifndef PACK_SIZE
-#define PACK_SIZE sizeof(image)
+#define PACK_SIZE sizeof(datavis_p)
 #endif
 typedef union{
-	image a ;
-	unsigned char buf[sizeof(image)/PACK_SIZE][PACK_SIZE];
+	datavis_p a ;
+	unsigned char buf [sizeof(datavis_p) / PACK_SIZE] [PACK_SIZE];
 } packetize ;
 packetize global_p ;
+
+void convert_to_packet(image * a , datavis_p * b)
+{
+	b -> tnow = a -> tnow ;
+	b -> exposure = (a -> exposure) ;
+	b -> pixx = 348 ;
+	b -> pixy = 260 ;
+	b -> ccdtemp = a -> ccdtemp ;
+	b -> boardtemp = a -> boardtemp ;
+	b -> chassistemp = a -> chassistemp ;
+	uint8_t numbin = (a->pixx) / (b->pixx) ;
+	if (numbin == 1) //no downsample, just copy
+		for (int i = 0 ; i < a -> imgsize ; i++ )
+			b->picdata[i] = (unsigned char)((a->picdata[i]) / 256);
+	else {
+		for (unsigned short i = 0 ; i < 260 ; i++ )
+		{
+			for (unsigned short j = 0 ; j < 348 ; j++)
+			{
+				double temp = 0 ;
+				for (unsigned char k = 0 ; k < numbin; k++)
+					for ( unsigned char l = 0 ; l < numbin ; l++ )
+						temp += a->picdata[i*numbin*348*numbin + j*numbin /*root of pixel*/
+						+ 348*numbin*k /*y axis*/
+						+l /* x axis */]*255.0/65535; //converted to 8 bit
+				temp /= numbin * numbin ;
+				b->picdata[i*348+j] = (unsigned char)temp;
+			}
+		}
+	}
+	return ;
+}
+
 /* Packet Serializer */
+
+unsigned long long int timenow();
 
 /* Housekeeping Log in binary */
 typedef union flb { float f ; char b[sizeof(float)] ; } flb ;
@@ -163,6 +219,10 @@ inline void put_data ( ostream & str , float val )
 	for ( char i = 0 ; i < sizeof(x.b) ; i++ )
 		str << x.b[i] ;
 }
+ inline void put_data ( ostream & str , char val )
+ {
+	 str << val ;
+ }
 /* End Housekeeping log */
 typedef struct sockaddr sk_sockaddr; 
 /* Saving FITS Image */
@@ -184,7 +244,9 @@ int save(const char *fileName , image * data) {
     long fpixel[] = { 1, 1 };
     fits_write_pix(fptr, TUSHORT, fpixel, data->imgsize, data->picdata, &status);
     fits_close_file(fptr, &status);
-    cerr << endl << "Main: Camera Thread: Save: saved to " << fileName << endl << endl;
+	#ifdef SK_DEBUG
+    cerr << endl << "Camera Thread: Save: saved to " << fileName << endl << endl;
+	#endif
   }
   else {
 	  cerr << "Error: " << __FUNCTION__ << " : Could not save image." << endl ;
@@ -204,14 +266,19 @@ int save(const char *fileName, image* data)
 void term (int signum)
 {
 	done = 1 ;
-	cerr << "Interrupt: Received Signal: 0x" << hex << signum << dec << endl ;
+	cerr << "Interrupt Handler: Received Signal: 0x" << hex << signum << dec << endl ;
 	return ;
 }
 
 void overheat(int signum)
 {
+	#ifdef RPI
+	gpioWrite(17,0);
+	#endif
+	camofftime = timenow() ;
     ccdoverheat = true ;
-    cerr << "Interrupt: Received Signal: 0x" << hex << signum << dec << endl ;
+	cam_off = true ;
+    cerr << "Interrupt Handler: Received Signal: 0x" << hex << signum << dec << endl ;
     return ;
 }
 /* End Interrupt handler */
@@ -220,6 +287,7 @@ void overheat(int signum)
 #ifdef ENABLE_PWOFF
 void sys_poweroff(void)
 {
+	cerr << "Info: Poweroff instruction received!" << endl ;
 	sync() ;
 	setuid(0) ;
 	reboot(LINUX_REBOOT_CMD_POWER_OFF) ;
@@ -235,6 +303,7 @@ void sys_poweroff(void)
 #ifdef ENABLE_REBOOT
 void sys_reboot(void)
 {
+	cerr << "Info: Reboot instruction received!" << endl ;
 	sync() ;
 	setuid(0) ;
 	reboot(RB_AUTOBOOT) ;
@@ -251,9 +320,13 @@ void sys_reboot(void)
 char space_left(void)
 {
 	boost::filesystem::space_info si = boost::filesystem::space(curr_dir) ;
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : PWD -> " << curr_dir << endl ;
+	#endif
 	long long free_space = (long long) si.available ;
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : free_space -> " << free_space << endl ;
+	#endif
 	if ( free_space < 1 * 1024 * 1024 )
 	{
 		perror("Not enough free space. Shutting down.\n") ;
@@ -274,14 +347,18 @@ int compare ( const void * a , const void * b)
 /* Time in ms from 1-1-1970 00:00:00 */
 unsigned long long int timenow()
 {
-	return ((std::chrono::duration_cast<std::chrono::milliseconds>((std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now())).time_since_epoch())).count()) ;
+	return ((std::chrono::duration_cast<std::chrono::milliseconds> 
+	((std::chrono::time_point_cast<std::chrono::milliseconds>
+	(std::chrono::system_clock::now())).time_since_epoch())).count()) ;
 }
 /* End time from epoch */
 
 /* Calculate optimum exposure */
 double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize , double exposure )
 {
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : Received exposure: " << exposure << endl ;
+	#endif
 	double result = exposure ;
 	double val ;
 	qsort(picdata,imgsize,sizeof(unsigned short),compare) ;
@@ -296,11 +373,11 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	#ifndef MEDIAN
 	#ifndef PERCENTILE
 	#define PERCENTILE 90.0
-	unsigned char direction ;
+	bool direction ;
 	if ( picdata[0] < picdata[imgsize-1] )
-		direction = 1 ;
+		direction = true ;
 	else
-		direction = 0 ;
+		direction = false ;
 
 	unsigned int coord = floor((PERCENTILE*(imgsize-1)/100.0)) ;
 	if ( direction )
@@ -312,6 +389,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 		val = picdata[imgsize-coord] ;
 	}
 
+	#ifdef SK_DEBUG
 	cerr << "Info: " << __FUNCTION__ << "Direction: " << direction << ", Coordinate: " << coord << endl ;
 	cerr << "Info: " << __FUNCTION__ << "10 values around the coordinate: " << endl ;
 	unsigned int lim2 = imgsize - coord > 3 ? coord + 4 : imgsize - 1 ;
@@ -319,12 +397,13 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	for ( int i = lim1 ; i < lim2 ; i++ )
 		cerr << picdata[i] << " ";
 	cerr << endl ;
+	#endif
 
 	#endif //PERCENTILE
 	#endif //MEDIAN
-
+	#ifdef SK_DEBUG
 	cerr << "In " << __FUNCTION__ << ": Median: " << val << endl ;
-
+	#endif
 	#ifndef PIX_MEDIAN
 	#define PIX_MEDIAN 40000.0
 	#endif
@@ -340,7 +419,9 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 
 	result = ((double)PIX_MEDIAN) * exposure / ((double)val) ;
 
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : Determined exposure from median " << val << ": " << result << endl ;
+	#endif
     
     while ( result > MAX_ALLOWED_EXPOSURE && pix_bin < 4 )
     {
@@ -368,10 +449,13 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 /* Snap picture routine */
 bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsigned short * data , double exposure  )
 {
+	cerr << "Camera Thread: Snapping image, " << exposure << "s exposure" << endl ;
 	bool success ;
 	if ( exposure <= maxShortExposure )
 	{
+		#ifdef SK_DEBUG
 		cerr << "Info: Exposure time less than max short exposure, opting for short exposure mode." << endl ;
+		#endif
 		success = device -> readCCD(0,0,pixX,pixY,pix_bin,pix_bin,exposure) ;
 		if ( ! success )
 		{	
@@ -381,7 +465,9 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 	}
 	else if ( exposure > maxShortExposure )
 	{
+		#ifdef SK_DEBUG
 		cerr << "Info: Exposure time greater than max short exposure, opting for long exposure mode." << endl ;
+		#endif
 		success = device ->startExposure(false) ; //false for some gain mode thing
 		if ( ! success )
 		{	
@@ -389,7 +475,9 @@ bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsign
 			return success ;
 		}
 		long delay = device -> delay(exposure) ;
+		#ifdef SK_DEBUG
 		cerr << "Info: Long exposure delay set to " << delay << " ms." << endl ;
+		#endif
 		usleep(delay) ;
 		success = device -> readCCD(0,0,pixX,pixY,pix_bin,pix_bin) ;
 		if ( ! success )
@@ -422,8 +510,9 @@ void * camera_thread(void *t)
 		cerr << "Error: Unable to open temperature log stream." << endl ;
 		templogstat = false ;
 	}
-	
+	#ifdef SK_DEBUG
 	cerr << "Info: Opened temperature log file" << endl ;
+	#endif
 	/*********************************/
 
 	/** Camera Missing Log **/
@@ -437,36 +526,25 @@ void * camera_thread(void *t)
 	{
 		cerr << "Error: Unable to open camera log stream." << endl ;
 	}
+	#ifdef SK_DEBUG
 	cerr << "Info: Opened camera log file." << endl ;
+	#endif
 	/************************/
 
-	/** Error Log **/
-	ofstream errlog ;
-	#ifndef ERRLOG_LOCATION
-	#define ERRLOG_LOCATION "/home/pi/err_log.txt"
-	#endif
-
-	errlog.open(ERRLOG_LOCATION,ios::app) ;
-	if(!errlog.good())
-	{
-		cerr << "Error: Unable to open error log stream." << endl ;
-	}
-    /***************/
-
-    bool cam_off = false ;
 	unsigned char firstrun = 1 ;
+	sleep(5); //initially sleep for 5 to get everything up and running
 	do {
 		if ( ! firstrun ){
 			cerr << "Camera not found. Waiting " << TIME_WAIT_USB / 1000000 << " s..." << endl ;
 			usleep ( TIME_WAIT_USB ) ; //spend 1 seconds between looking for the camera every subsequent runs
-			#ifdef RPI
-			if ( cam_off )
-			{
-				usleep ( 1000000 * 60 ) ;
-				cam_off = false ;
-				gpioWrite(17,1) ;
-			}
-			#endif
+			// #ifdef RPI
+			// if ( cam_off )
+			// {
+			// 	usleep ( 1000000 * 60 ) ;
+			// 	cam_off = false ;
+			// 	gpioWrite(17,1) ;
+			// }
+			// #endif
 		}
 		int count = AtikCamera::list(devices,MAX) ;
 		cerr << "List: " << count << " number of devices." << endl ;
@@ -494,9 +572,9 @@ void * camera_thread(void *t)
 			const char * devname ; CAMERA_TYPE type ;
 
 			success1 = device -> getCapabilities(&devname, &type, devcap) ;
-
+			#ifdef SK_DEBUG
 			cerr << "Info: getCapabilities: " << success1 << endl ;
-
+			#endif
 			if ( !success1 ){ //if failed
 				cerr << __FILE__ << ":" << __LINE__ << ":device->getCapabilities()" << endl ;
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": Error: Failed to get device capabilities." << endl ;
@@ -504,7 +582,9 @@ void * camera_thread(void *t)
 				break ; //get out and fall back to the main loop
 			}
 			else {
+				#ifdef SK_DEBUG
 				cerr << "Device: " << "Returned Capabilities" << endl ;
+				#endif
 			}
 
 			unsigned       pixelCX = devcap -> pixelCountX ;
@@ -529,9 +609,9 @@ void * camera_thread(void *t)
 			if ( pix_bin > maxBinX || pix_bin > maxBinY )
 				pix_bin = maxBinX < maxBinY ? maxBinX : maxBinY ; //smaller of the two 
 
-			unsigned       width  = device -> imageWidth(pixelCX,pix_bin) ;
-			unsigned       height = device -> imageHeight(pixelCY,pix_bin) ; 
-
+			unsigned       width  = device -> imageWidth(pixelCX, pix_bin) ;
+			unsigned       height = device -> imageHeight(pixelCY, pix_bin) ; 
+			#ifdef SK_DEBUG
 			cerr << "Device: AtikCapabilities:" << endl ;
 			cerr << "Pixel Count X: " << pixelCX << "; Pixel Count Y: " << pixelCY << endl ;
 			cerr << "Pixel Size X: " << pixelSX << " um; Pixel Size Y: " << pixelSY << " um" << endl ;
@@ -543,14 +623,14 @@ void * camera_thread(void *t)
 			cerr << "Maximum Short Exposure: " << maxShortExposure << " ms" << endl ;
 			cerr << "Binned X width: " << width << endl ;
 			cerr << "Binned Y height: " << height << endl ;
-
+			#endif
 			if ( minShortExposure > maxShortExposure )
 			{
 				#ifdef SK_DEBUG
 				cerr << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Minimum short exposure > Maximum short exposure. Something wrong with camera. Breaking and resetting." << endl ;
-				delete[] devcap ;
+				delete devcap ;
 				device -> close() ;
 				break ;
 			}
@@ -577,28 +657,13 @@ void * camera_thread(void *t)
 			{
 				for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 				{
-					success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
-					#ifdef RPI
-					if ( gpio_status )
-						if ( temp > 40.0 )
-						{
-							gpioWrite(17,0) ;
-							cerr << "Info: Turned off camera." << endl ;
-							cam_off = true ;
-                            ccdoverheat = true ;
-						}
-					#endif
+					success2 = device -> getTemperatureSensorStatus(sensor, &temp) ;
+					if ( temp > 40.0 )
+						raise(SIGILL);
 					templog << (unsigned char) sensor ;
-					put_data(templog,timenow());
-					put_data(templog,temp);
+					put_data(templog, timenow());
+					put_data(templog, temp);
 					templog << (unsigned char) 0x00 ;
-
-					/** FOR TESTING ONLY **/
-					#ifdef TESTING
-					if ( temp > 40 )
-						exit(0) ;
-					#endif
-					/**********************/
 					#ifdef SK_DEBUG
 					cerr << "Info: Sensor " << sensor << ": Temp: " << temp << " C" << endl ;
 					#endif
@@ -621,7 +686,7 @@ void * camera_thread(void *t)
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not complete first exposure. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete[] devcap ;
+				delete devcap ;
 				device -> close() ;
 				break ;
 			}
@@ -633,7 +698,7 @@ void * camera_thread(void *t)
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not get data off of the camera. Falling back to loop 1." << endl ;
 				delete [] picdata ;
-				delete[] devcap  ;
+				delete devcap  ;
 				device -> close() ;
 				break ;
 			}
@@ -651,7 +716,7 @@ void * camera_thread(void *t)
 			imgdata -> pixy = height ;
             imgdata -> imgsize = width*height ;
 			imgdata -> exposure = exposure ;
-            memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
+            memcpy(&(imgdata->picdata), picdata, width*height *sizeof(unsigned short));
 			//(imgdata -> picdata) = picdata ; // FIX WITH MEMCPY
 
 			if ( save(gfname.c_str(),imgdata) )
@@ -660,8 +725,8 @@ void * camera_thread(void *t)
 				cerr << "Error: Could not open filestream to write data to." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
-				delete [] picdata ;
-				delete[] devcap  ;
+				delete[] picdata ;
+				delete devcap  ;
 				device -> close() ;
 				break ;
 			}
@@ -676,7 +741,7 @@ void * camera_thread(void *t)
 			cerr << "Info: Calculating new exposure." << endl ;
 			cerr << "Old Exposure -> " << exposure << " ms," << endl ;
 			#endif
-			exposure = find_optimum_exposure(picdata,imgsize,exposure) ;
+			exposure = find_optimum_exposure(picdata, imgsize, exposure) ;
 			#ifdef SK_DEBUG
 			cerr << "New Exposure -> " << exposure << "ms." << endl ;
 			#endif
@@ -686,8 +751,8 @@ void * camera_thread(void *t)
 				cerr << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
 				#endif
 				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Exiting for now." << endl ;
-				delete [] picdata ;
-				delete[] devcap ;
+				delete[] picdata ;
+				delete devcap ;
 				device -> close() ;
 				break ;
 			}
@@ -712,7 +777,7 @@ void * camera_thread(void *t)
 					cerr << "Info: Loop: Short exposure mode." << endl ;
 					#endif
 					tnow = timenow() ;
-					success1 = snap_picture(device,pixelCX,pixelCY,picdata,exposure) ;
+					success1 = snap_picture(device, pixelCX, pixelCY, picdata, exposure) ;
 					#ifdef SK_DEBUG
 					cerr << "Info: Loop: Short: " << tnow << " obtained image." << endl ;
 					#endif
@@ -727,28 +792,13 @@ void * camera_thread(void *t)
 					{
 						for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 						{
-							success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+							success2 = device -> getTemperatureSensorStatus (sensor, &temp) ;
 							templog << (unsigned char) sensor ;
-							put_data(templog,timenow());
-							put_data(templog,temp);
+							put_data(templog, timenow());
+							put_data(templog, temp);
 							templog << (unsigned char) 0x00 ;
-							
-							#ifdef RPI
-							if ( gpio_status )
-								if ( temp > 40.0 )
-								{
-									gpioWrite(17,0) ;
-									cerr << "Info: Turned off camera." << endl ;
-									cam_off = true ;
-                                    raise(SIGILL) ; //CCD overheat is indicated by illegal instruction
-								}
-							#endif
-
-							/** FOR TESTING ONLY **/
-							#ifdef TESTING
-							if ( temp > 40 )
-								exit(0) ;
-							#endif
+							if ( temp > 40.0 )
+								raise(SIGILL);
 							#ifdef SK_DEBUG
 							cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
 							#endif
@@ -773,7 +823,7 @@ void * camera_thread(void *t)
 						if ( omp_get_thread_num( ) == 0 ) //first thread to take pictures
 						{	
 							tnow = timenow() ;
-							success1 = snap_picture ( device,pixelCX,pixelCY,picdata,exposure ) ;
+							success1 = snap_picture ( device, pixelCX, pixelCY, picdata, exposure ) ;
 							#ifdef SK_DEBUG
 							cerr << "Info: Loop: Long: " << tnow << " obtained image." << endl ;
 							#endif
@@ -794,23 +844,13 @@ void * camera_thread(void *t)
 								{
 									for ( unsigned sensor = 1 ; success2 && sensor <= tempSensCount ; sensor ++ )
 									{
-										temp ; success2 = device -> getTemperatureSensorStatus(sensor,&temp) ;
+										temp ; success2 = device -> getTemperatureSensorStatus(sensor, &temp) ;
+										if ( temp > 40 )
+											raise(SIGILL);
 										templog << (unsigned char) sensor ;
-										put_data(templog,timenow());
-										put_data(templog,temp);
+										put_data(templog, timenow());
+										put_data(templog, temp);
 										templog << (unsigned char) 0x00 ;
-
-										/** FOR TESTING ONLY **/
-										#ifdef RPI
-										if ( gpio_status )
-											if ( temp > 40.0 )
-											{
-												gpioWrite(17,0) ;
-												cerr << "Info: Turned off camera." << endl ;
-												cam_off = true ;
-                                                raise(SIGILL) ; //CCD overheat is indicated by illegal instruction
-											}
-										#endif
 										//#ifdef SK_DEBUG
 										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
 										//#endif
@@ -830,10 +870,10 @@ void * camera_thread(void *t)
 				#endif
 				/** Post-processing **/
 				gfname = to_string(tnow) + ".fit[compress]" ;
-				image * imgdata = new image ;
+				//image * imgdata = new image ;
                 
-                width  = device -> imageWidth(pixelCX,pix_bin) ;
-                height = device -> imageHeight(pixelCY,pix_bin) ;
+                width  = device -> imageWidth(pixelCX, pix_bin) ;
+                height = device -> imageHeight(pixelCY, pix_bin) ;
                 
 				imgdata -> tnow = tnow ;
 				imgdata -> pixx = width ;
@@ -843,10 +883,10 @@ void * camera_thread(void *t)
                 imgdata -> ccdtemp = floor(temp*100) ;
                 imgdata -> boardtemp = boardtemp ;
                 imgdata -> chassistemp = chassistemp ;
-                memcpy(&(imgdata->picdata),picdata,width*height*sizeof(unsigned short));
+                memcpy(&(imgdata->picdata), picdata, width*height *sizeof(unsigned short));
 				
 				#ifdef DATAVIS
-				memcpy(&(global_p.a),imgdata,sizeof(image));
+				convert_to_packet(imgdata, &(global_p.a));
 				// global_p.a.tnow = tnow ;
 				// global_p.a.pixx = width ;
 				// global_p.a.pixy = height ;
@@ -857,14 +897,14 @@ void * camera_thread(void *t)
                 // global_p.a.chassistemp = chassistemp ;
 				// cerr << "Camera: " << global_p.a.exposure << endl ;
 				#endif
-                if ( save(gfname.c_str(),imgdata) )
+                if ( save(gfname.c_str(), imgdata) )
 				{
 					#ifdef SK_DEBUG
 					cerr << "Error: Could not open filestream to write data to." << endl ;
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
-					delete [] picdata ;
-					delete [] devcap  ;
+					delete[] picdata ;
+					delete devcap  ;
 					device -> close() ;
 					break ;
 				}
@@ -879,7 +919,7 @@ void * camera_thread(void *t)
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: Old exposure: " << old_exposure << " s" << endl ;
 				#endif
-				exposure = find_optimum_exposure(picdata,imgsize,exposure) ;
+				exposure = find_optimum_exposure(picdata, imgsize, exposure) ;
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: New exposure: " << exposure << " s" << endl ;
 				#endif
@@ -890,7 +930,7 @@ void * camera_thread(void *t)
 					#endif
 					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "OpticsError: Too bright surroundings. Setting minimum exposure." << endl ;
 					// delete [] picdata ;
-					// delete[] devcap ;
+					// delete devcap ;
 					// break ;
 					exposure = minShortExposure ;
 				}
@@ -901,8 +941,9 @@ void * camera_thread(void *t)
 
 			} //loop 3
 			device -> close() ;
-			delete [] picdata ;
-			delete[] devcap ;
+			delete[] picdata ;
+			delete imgdata ;
+			delete devcap ;
 		} //loop 2
 		firstrun = 0 ;
 	} while ( ! done ) ; //loop 1
@@ -917,10 +958,142 @@ void * camera_thread(void *t)
 /* Body temperature monitoring thread */
 void * housekeeping_thread(void *t)
 {   
-    long tid = (long) t ;
-    cerr << "Housekeeping: " << tid << endl ;
-	while(!done)
-		sleep(1);
+	ofstream tempchassis, tempboard ;
+	#ifndef CHASSISLOG_LOCATION
+	#define CHASSISLOG_LOCATION "/home/pi/chassis_log.bin"
+	#endif
+
+	tempchassis.open( CHASSISLOG_LOCATION , ios::binary | ios::app ) ;
+	bool chassislogstat = true ;
+	if ( !tempchassis.good() )
+	{
+		cerr << "Housekeeping: Unable to open chassis temperature log stream." << endl ;
+		chassislogstat = false ;
+	}
+	cerr << "Housekeeping: Opened chassis temperature log file" << endl ;
+	tempchassis << "Data format: " << endl
+				<< "tnow (ulonglong, 8 bytes) followed by temperature (in C, no decimal, 1 byte)" << endl ; 
+	
+	#ifndef BOARDLOG_LOCATION
+	#define BOARDLOG_LOCATION "/home/pi/board_log.bin"
+	#endif
+
+	tempboard.open( BOARDLOG_LOCATION , ios::binary | ios::app ) ;
+	bool boardlogstat = true ;
+	if ( !tempboard.good() )
+	{
+		cerr << "Housekeeping: Unable to open board temperature log stream." << endl ;
+		boardlogstat = false ;
+	}
+	cerr << "Housekeeping: Opened board temperature log file" << endl ;
+	tempchassis << "Data format: " << endl
+				<< "tnow (ulonglong, 8 bytes) followed by temperature (in C, no decimal, 1 byte)" << endl ;
+	/*
+	 * List of addresses:
+	 * 1. ADS1115: 0x48
+	 * 2. MCP9808: 0x18 (open), 0x19 (A0), 0x1a (A1), 0x1c (A2)
+	 * 3. 10 DOF Sensor: 0x19, 0x1E, 0x6B, 0x77
+	*/
+	mcp9808 therm[2];
+	ads1115 csensor = ads1115(0x48/* Default: 0x48 or hex('H')*/) ;
+	bool masteractive = therm[0].begin(0x18) ; therm[1].begin(0x1a);
+	csensor.begin();
+	csensor.setGain(GAIN_ONE);
+	while(!done){
+		unsigned long long tnow = timenow() ;
+		boardtemp = therm[0].readTemp();
+		chassistemp = therm[1].readTemp() ;
+		if ( masteractive ){
+		/* Board too hot or too cold: Turn off camera */
+		if ((boardtemp/100. > 50||boardtemp/100. < 0) && cam_off == false)
+		{
+			#ifdef RPI
+			gpioWrite(17,0);
+			#endif
+			if (camlog.good()) camlog << tnow << " board overheat detected, turning off camera" << endl ;
+			cam_off = true ;
+		}
+		/**********************************************/
+
+		/* Board has cooled down too far, turn on heater */
+		while ( boardtemp/100. < 0 && cam_off == true ) //board too cold and camera is off
+		{
+			#ifdef RPI
+			gpioWrite(27,1); //turn on heater
+			#endif
+			usleep(5000000) ; //500 ms
+			#ifdef RPI
+			gpioWrite(27,0) ; //turn off heater
+			#endif
+			boardtemp = therm[0].readTemp();
+		}
+		/*************************************************/
+
+		/* Camera off because of CCD over heat and cooldown period has passed */
+		if ( cam_off && ccdoverheat && (camofftime - timenow()<CCD_COOLDOWN_TIME))
+		{
+			#ifdef RPI
+			gpioWrite(17,1);
+			#endif
+			if (camlog.good()) camlog << tnow << " CCD Cooldown period passed, turning on camera" << endl ;
+			cam_off = false ;
+			ccdoverheat = false ;
+			camofftime = INFINITY ;
+		}
+		/**********************************************************************/
+
+		/* Board temperature okay and camera is off, turn on camera */
+		if ( (boardtemp/100. < 50 && boardtemp/100. > 0) && cam_off == false )
+		{
+			cam_off = false ;
+			#ifdef RPI
+			gpioWrite(17,1);
+			#endif
+		}
+		/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+		} //endif masteractive
+		else{
+			/* Camera off because of CCD over heat and cooldown period has passed */
+			if ( cam_off && ccdoverheat && (camofftime - timenow()<CCD_COOLDOWN_TIME))
+			{
+				#ifdef RPI
+				gpioWrite(17,1);
+				#endif
+				if (camlog.good()) camlog << tnow << " CCD Cooldown period passed, turning on camera" << endl ;
+				cam_off = false ;
+				ccdoverheat = false ;
+				camofftime = INFINITY ;
+			}
+			/**********************************************************************/
+			else {
+				#ifdef RPI
+				gpioWrite(17,1);
+				cam_off = false ;
+				#endif
+			}
+		}
+		cerr << "Housekeeping: Board Temp: " << boardtemp / 100.0 << " C,"
+			 << " Chassis Temp: " << chassistemp / 100.0 << " C" << endl ; 
+		if (boardlogstat){
+			put_data(tempboard,tnow);
+			put_data(tempboard,(char)(boardtemp/100));
+		}
+		if (chassislogstat){
+			put_data(tempchassis,tnow);
+			put_data(tempchassis,(char)(chassistemp/100));
+		}
+		int16_t adc0, adc1 ;
+		adc0 = csensor.readADC_SingleEnded(0);
+		adc1 = csensor.readADC_SingleEnded(1);
+		cerr << "Housekeeping: ADC:" << endl
+			 << "Housekeeping: A0: " << adc0 << " V" << endl
+			 << "Housekeeping: A1: " << adc1 << " V" << endl ; //uncalibrated voltage for current
+		usleep(1000000); //every 1s
+	}
+	#ifdef RPI //ensure camera and heater are OFF
+	gpioWrite(17,0) ;
+	gpioWrite(27,0) ;
+	#endif
     pthread_exit(NULL) ;
 }
 /* End body temperature monitoring thread */
@@ -949,7 +1122,7 @@ void * datavis_thread(void *t)
     } 
 
 	struct timeval timeout;      
-    timeout.tv_sec = 2;
+    timeout.tv_sec = 1;
     timeout.tv_usec = 0;
 
     if (setsockopt (server_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
@@ -981,9 +1154,9 @@ void * datavis_thread(void *t)
 		valread = 0 ;
         char recv_buf[32] = {0} ;
 		//cerr << "DataVis: " << global_p.a.exposure << endl ;
-        for ( int i = 0 ; (i < sizeof(image)/PACK_SIZE) ; i++ ){
-			if ( done ) break;
-			cerr << "DataVis: Loop: Server File: " << server_fd << endl ;
+        for ( int i = 0 ; (i < sizeof(datavis_p)/PACK_SIZE) ; i++ ){
+			if (done)
+				break ;
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
             	perror("accept"); 
@@ -1009,6 +1182,18 @@ void * datavis_thread(void *t)
 /* Data visualization server thread */
 int main ( void )
 {
+	/** Error Log **/
+	ofstream errlog ;
+	#ifndef ERRLOG_LOCATION
+	#define ERRLOG_LOCATION "/home/pi/err_log.txt"
+	#endif
+
+	errlog.open(ERRLOG_LOCATION,ios::app) ;
+	if(!errlog.good())
+	{
+		cerr << "Error: Unable to open error log stream." << endl ;
+	}
+    /***************/
     /* Setup GPIO */
     gpio_status = false;
     #ifdef RPI
@@ -1030,6 +1215,7 @@ int main ( void )
     {
         perror("Main: SIGTERM Handler") ;
         cerr << "Main: SIGTERM Handler failed to install" << endl ;
+		if (errlog.good()) errlog << "Main: SIGTERM Handler failed to install, errno" << errno << endl ;
     }
 	memset(&action[1], 0, sizeof(struct sigaction)) ;
 	action[1].sa_handler = term ;
@@ -1037,6 +1223,7 @@ int main ( void )
     {
         perror("Main: SIGINT Handler") ;
         cerr << "Main: SIGINT Handler failed to install" << endl ;
+		if (errlog.good()) errlog << "Main: SIGINT Handler failed to install, errno" << errno << endl ;
     }
     memset(&action[2], 0, sizeof(struct sigaction)) ;
 	action[2].sa_handler = overheat ;
@@ -1044,6 +1231,7 @@ int main ( void )
     {
         perror("Main: SIGILL Handler") ;
         cerr << "Main: SIGILL Handler failed to install" << endl ;
+		if (errlog.good()) errlog << "Main: SIGILL Handler failed to install, errno" << errno << endl ;
     }
     cerr << "Main: Interrupt handlers are set up." << endl ;
     /* End set up interrupt handler */
@@ -1052,6 +1240,7 @@ int main ( void )
     if ( getcwd(curr_dir,sizeof(curr_dir)) == NULL ) //can't get pwd? Something is seriously wrong. System is shutting down.
 	{
 		perror("Main: getcwd() error, shutting down.") ;
+		if (errlog.good()) errlog << "Main: getcwd() error, shutting down. errno" << errno << endl ;
 		sys_poweroff() ;
 		return 1 ;
 	}
@@ -1084,6 +1273,7 @@ int main ( void )
     rc0 = pthread_create(&thread0,&attr,camera_thread,(void *)0);
     if (rc0){
         cerr << "Main: Error: Unable to create camera thread " << rc0 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to create camera thread. errno" << errno << endl ;
         exit(-1) ; 
     }
 
@@ -1091,14 +1281,14 @@ int main ( void )
     rc1 = pthread_create(&thread1,&attr,housekeeping_thread,(void *)1);
     if (rc1){
         cerr << "Main: Error: Unable to create housekeeping thread " << rc1 << endl ;
-        exit(-1) ; 
+		if (errlog.good()) errlog << "Main: Error: Unable to create housekeeping thread. errno" << errno << endl ; 
     }
 
 	cerr << "Main: Creating datavis thread" << endl;
 	rc2 = pthread_create(&thread2,&attr,datavis_thread,(void *)2);
     if (rc2){
         cerr << "Main: Error: Unable to create datavis thread " << rc2 << endl ;
-        exit(-1) ; 
+		if (errlog.good()) errlog << "Main: Error: Unable to create datavis thread. errno" << errno << endl ;
     }
 
     pthread_attr_destroy(&attr) ;
@@ -1107,6 +1297,7 @@ int main ( void )
     if (rc0)
     {
         cerr << "Main: Error: Unable to join camera thread" << rc0 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to join camera thread. errno" << errno << endl ;
         exit(-1);
     }
     cerr << "Main: Completed camera thread, exited with status " << status << endl ;
@@ -1115,6 +1306,7 @@ int main ( void )
     if (rc1)
     {
         cerr << "Main: Error: Unable to join housekeeping thread" << rc1 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to join housekeeping thread. errno" << errno << endl ;
         exit(-1);
     }
     cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
@@ -1123,6 +1315,7 @@ int main ( void )
     if (rc2)
     {
         cerr << "Main: Error: Unable to join datavis thread" << rc2 << endl ;
+		if (errlog.good()) errlog << "Main: Error: Unable to join datavis thread. errno" << errno << endl ;
         exit(-1);
     }
     cerr << "Main: Completed datavis thread, exited with status " << status << endl ;
