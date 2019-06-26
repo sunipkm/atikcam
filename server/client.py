@@ -5,7 +5,7 @@ import matplotlib.animation as anim
 import time
 import datetime
 import astropy.io.fits as pf
-import cv2
+#import cv2
 import socket
 import sys
 
