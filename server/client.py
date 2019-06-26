@@ -38,11 +38,11 @@ class image(c.Structure):
 
 port = 12376
 
-print(c.sizeof(image))
+#print(c.sizeof(image))
 fig = plt.figure(figsize=(10,6))
 fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.datetime.fromtimestamp(timenow()/1e3),0,0))
 x0 = 20
-x1 = 318
+x1 = 330
 y0 = 25
 y1 = 245
 lx = x1 - x0
