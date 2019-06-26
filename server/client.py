@@ -48,7 +48,7 @@ y1 = 245
 lx = x1 - x0
 ly = y1 - y0
 bound = [20,92,178,255,318]
-for i in len(bound):
+for i in range(len(bound)):
     bound[i] -= x0
 extent=(-lx/2*0.09/3/4,lx/2*0.09/3/4,-ly/2*0.09/3/4,ly/2*0.09/3/4)
 #fig.text(50,-5,r'$500 \pm 5~nm$')
