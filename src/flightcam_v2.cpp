@@ -178,7 +178,7 @@ void convert_to_packet(image * a , datavis_p * b)
 					for ( unsigned char l = 0 ; l < numbin ; l++ )
 						temp += a->picdata[i*numbin*348*numbin + j*numbin /*root of pixel*/
 						+ 348*numbin*k /*y axis*/
-						+l /* x axis */]/256.0;
+						+l /* x axis */]/257.0; //converted to 8 bit
 				b->picdata[i*348+j] = (unsigned char)(temp / numbin / numbin);
 			}
 		}
