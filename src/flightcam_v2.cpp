@@ -322,7 +322,9 @@ char space_left(void)
 	boost::filesystem::space_info si = boost::filesystem::space(curr_dir) ;
 	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : PWD -> " << curr_dir << endl ;
+	#endif
 	long long free_space = (long long) si.available ;
+	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : free_space -> " << free_space << endl ;
 	#endif
 	if ( free_space < 1 * 1024 * 1024 )
