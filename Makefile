@@ -8,6 +8,7 @@ flight:
 	$(pwd)
 	g++ src/flightcam_v2.cpp -o cam -DPIC_TIME_GAP=1 -DRPI -DPIX_BIN=1 -std=c++11 -I./include/ -lusb-1.0 -latikccd -lm -fopenmp -lboost_system -lboost_filesystem -lcfitsio -lpigpio -lrt -lpthread -DDATAVIS -lmcp9808 -lads1115
 	cp cam data/
+	cd data && sudo ./cam
 	
 clean:
 	sudo rm -rf data/*
