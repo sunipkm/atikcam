@@ -1173,7 +1173,7 @@ void * datavis_thread(void *t)
             //cerr << "DataVis: " << recv_buf << endl ;
 			close(new_socket);
 		}
-		sleep(PIC_TIME_GAP);
+		//sleep(1);
 		cerr << "DataVis thread: Sent" << endl ;
 	}
 	close(server_fd);
