@@ -44,7 +44,7 @@ fig.suptitle("Timestamp: %s, exposure: %f s\nCCD Temperature: %f"%(datetime.date
 extent=None#(-1230/2*0.09/3,1230*0.09/6,-812*0.09/6,812*0.09/6)
 #fig.text(50,-5,r'$500 \pm 5~nm$')
 #im = plt.imshow(np.zeros((260,384,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
-im = plt.imshow(np.zeros((260,384),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
+im = plt.imshow(np.zeros((260,384),dtype=np.uint8),vmin=0,vmax=256,animated=True,cmap='bone',extent=extent)
 a = image()
 
 def animate(i):
@@ -75,7 +75,7 @@ def animate(i):
     # if i==2:
     #     print("Saving...")
     #     np.save('image',data)
-    print("Frame: ",i,a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3))
+    print("Frame: ",i,a.exposure, datetime.datetime.fromtimestamp(a.tnow/1e3),data.max())
     #np.save(str(timenow()),data)
     #data = cv2.resize(data,dsize=(1392,1040),cv2.INTER_CUBIC)
     fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
