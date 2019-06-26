@@ -47,7 +47,7 @@ y0 = 25
 y1 = 245
 lx = x1 - x0
 ly = y1 - y0
-bounds = [20,92,180,255,318]
+bounds = [20,92,184,255,318]
 for i in range(len(bounds)):
     bounds[i] -= x0
 extent=(-lx/2*0.09/3*4,lx/2*0.09/3*4,-ly/2*0.09/3*4,ly/2*0.09/3*4)
@@ -113,3 +113,4 @@ def animate(i):
 
 animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=500)
 plt.show()
+print("\n")
