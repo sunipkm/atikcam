@@ -1284,12 +1284,14 @@ int main ( void )
 		if (errlog.good()) errlog << "Main: Error: Unable to create housekeeping thread. errno" << errno << endl ; 
     }
 
+	#ifdef DATAVIS
 	cerr << "Main: Creating datavis thread" << endl;
 	rc2 = pthread_create(&thread2,&attr,datavis_thread,(void *)2);
     if (rc2){
         cerr << "Main: Error: Unable to create datavis thread " << rc2 << endl ;
 		if (errlog.good()) errlog << "Main: Error: Unable to create datavis thread. errno" << errno << endl ;
     }
+	#endif
 
     pthread_attr_destroy(&attr) ;
 
@@ -1311,6 +1313,7 @@ int main ( void )
     }
     cerr << "Main: Completed housekeeping thread, exited with status " << status << endl ;
 
+	#ifdef DATAVIS
 	rc2 = pthread_join(thread2,&status) ;
     if (rc2)
     {
@@ -1319,6 +1322,7 @@ int main ( void )
         exit(-1);
     }
     cerr << "Main: Completed datavis thread, exited with status " << status << endl ;
+	#endif
 	#ifdef RPI
 	gpioTerminate();
 	#endif
