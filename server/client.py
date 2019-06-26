@@ -47,9 +47,9 @@ y0 = 25
 y1 = 245
 lx = x1 - x0
 ly = y1 - y0
-bound = [20,92,178,255,318]
-for i in range(len(bound)):
-    bound[i] -= x0
+bounds = [20,92,178,255,318]
+for i in range(len(bounds)):
+    bounds[i] -= x0
 extent=(-lx/2*0.09/3/4,lx/2*0.09/3/4,-ly/2*0.09/3/4,ly/2*0.09/3/4)
 #fig.text(50,-5,r'$500 \pm 5~nm$')
 #im = plt.imshow(np.zeros((260,384,3),dtype=np.uint8),vmin=0,vmax=0xff,animated=True,cmap='bone',extent=extent)
@@ -57,7 +57,7 @@ im = plt.imshow(np.zeros((ly,lx),dtype=np.uint8),vmin=0,vmax=255,animated=True,c
 a = image()
 
 def animate(i):
-    global a
+    global a, bounds
     val = ''.encode('utf-8')
     #print("Receiving %d packets:"%(1))
     for j in range(1):
