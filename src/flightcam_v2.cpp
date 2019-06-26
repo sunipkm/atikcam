@@ -180,6 +180,8 @@ void convert_to_packet(image * a , datavis_p * b)
 						+ 348*numbin*k /*y axis*/
 						+l /* x axis */]*255.0/65535; //converted to 8 bit
 				temp /= numbin * numbin ;
+				if ( temp > 255 )
+					cerr << "OVERFLOW!" << endl ;
 				b->picdata[i*348+j] = (unsigned char)((temp>255) ? 255 : temp);
 			}
 		}
