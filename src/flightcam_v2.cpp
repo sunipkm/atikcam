@@ -934,8 +934,8 @@ void * camera_thread(void *t)
 				cerr << "Info: Loop: Old exposure: " << old_exposure << " s" << endl ;
 				#endif
 				exposure = find_optimum_exposure(picdata, imgsize, exposure) ;
-				for ( int i = 0 ; i < 1392*1040 ; i++ )
-					picdata[i] = 0 ;
+				// for ( int i = 0 ; i < 1392*1040 ; i++ )
+				// 	picdata[i] = 0 ;
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: New exposure: " << exposure << " s" << endl ;
 				#endif
@@ -1175,14 +1175,14 @@ void * datavis_thread(void *t)
 				break ;
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
-            	//perror("accept"); 
+            	// perror("accept"); 
 				// cerr << "DataVis: Accept from socket error!" <<endl ;
         	}
             ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,0);
 			//cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
-			if ( numsent != PACK_SIZE ){
-				//perror("DataVis: Send: ");
-				// cerr << "DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
+			if ( numsent > 0 && numsent != PACK_SIZE ){
+				perror("DataVis: Send: ");
+				cerr << "DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
 			}
             //cerr << "DataVis: Data sent" << endl ;
             //valread = read(sock,recv_buf,32);
