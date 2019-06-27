@@ -59,7 +59,7 @@ using namespace std ;
 #define MAX 1
 
 #ifndef MAX_ALLOWED_EXPOSURE
-#define MAX_ALLOWED_EXPOSURE 60
+#define MAX_ALLOWED_EXPOSURE 40
 #endif
 
 #ifndef TIME_WAIT_USB
@@ -141,6 +141,7 @@ typedef struct {
 	float exposure ; //exposure in ms
 	unsigned short pixx ; //348
 	unsigned short pixy ; //260
+	unsigned char pixbin ;
 	short ccdtemp ; // temp in C * 100
 	short boardtemp ;
 	short chassistemp ;
@@ -161,6 +162,7 @@ void convert_to_packet(image * a , datavis_p * b)
 	b -> exposure = (a -> exposure) ;
 	b -> pixx = 348 ;
 	b -> pixy = 260 ;
+	b -> pixbin = pix_bin ;
 	b -> ccdtemp = a -> ccdtemp ;
 	b -> boardtemp = a -> boardtemp ;
 	b -> chassistemp = a -> chassistemp ;

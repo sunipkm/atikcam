@@ -90,7 +90,7 @@ def animate(i):
     fig.canvas.set_window_title("CoMIC Instrument Monitor: Frame %d"%(i))
     plt.xticks([-15,-10,-5,0,5,10,15],[r'$-15^\circ$',r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$',r'$15^\circ$'])
     plt.yticks([-10,-5,0,5,10],[r'$-10^\circ$',r'$-5^\circ$',r'$0^\circ$',r'$5^\circ$',r'$10^\circ$'])
-    fig.suptitle("Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f$^\circ$C, Instrument Temperature: %.2f$^\circ$C"%(datetime.datetime.fromtimestamp(a.tnow//1e3),a.exposure,a.ccdtemp/100,a.boardtemp/100))
+    fig.suptitle("Bin: %d Timestamp: %s, exposure: %.3f s\nCCD Temperature: %.2f$^\circ$C, Instrument Temperature: %.2f$^\circ$C"%(a.pixbin, datetime.datetime.fromtimestamp(a.tnow//1e3),a .exposure,a.ccdtemp/100, a.boardtemp/100))
     # plt.text(80,-10,r'$500 \pm 5~nm$')
     # plt.text(390,-10,r'$589 \pm 5~nm$')
     # plt.text(700,-10,r'$770 \pm 5~nm$')
