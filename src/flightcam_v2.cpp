@@ -425,13 +425,13 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
     
     while ( result > MAX_ALLOWED_EXPOSURE && pix_bin < 4 )
     {
-        result /= 2 ;
+        result /= 4 ;
         pix_bin *= 2 ;
     }
     
     while ( result <= minShortExposure && pix_bin > 1 )
     {
-        result *= 2 ;
+        result *= 4 ;
         pix_bin /= 2 ;
     }
 	if ( result <= minShortExposure )
