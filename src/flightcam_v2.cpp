@@ -59,7 +59,7 @@ using namespace std ;
 #define MAX 1
 
 #ifndef MAX_ALLOWED_EXPOSURE
-#define MAX_ALLOWED_EXPOSURE 130
+#define MAX_ALLOWED_EXPOSURE 60
 #endif
 
 #ifndef TIME_WAIT_USB
@@ -449,7 +449,8 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 /* Snap picture routine */
 bool snap_picture ( AtikCamera * device , unsigned pixX , unsigned pixY , unsigned short * data , double exposure  )
 {
-	cerr << "Camera Thread: Snapping image, " << exposure << "s exposure" << endl ;
+	cerr << "Camera Thread: Snapping image, " << exposure << "s exposure" << 
+	" Bin: " << pix_bin << endl ;
 	bool success ;
 	if ( exposure <= maxShortExposure )
 	{
