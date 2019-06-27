@@ -30,6 +30,7 @@ class image(c.Structure):
         ('exposure',c.c_float),
         ('pixx',c.c_ushort),
         ('pixy',c.c_ushort),
+        ('pixbin',c.c_byte),
         ('ccdtemp',c.c_short),
         ('boardtemp',c.c_short),
         ('chassistemp',c.c_short),
