@@ -358,6 +358,7 @@ unsigned long long int timenow()
 /* Calculate optimum exposure */
 double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize , double exposure )
 {
+	#define SK_DEBUG
 	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : Received exposure: " << exposure << endl ;
 	#endif
@@ -425,17 +426,23 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
 	cerr << __FUNCTION__ << " : Determined exposure from median " << val << ": " << result << endl ;
 	#endif
     
-    // while ( result > MAX_ALLOWED_EXPOSURE && pix_bin < 4 )
-    // {
-    //     result /= 4 ;
-    //     pix_bin *= 2 ;
-    // }
+    while ( result > MAX_ALLOWED_EXPOSURE && pix_bin < 4 )
+    {
+        result /= 4 ;
+        pix_bin *= 2 ;
+		#ifdef SK_DEBUG
+		cerr << "exposure: " << result << " bin: " << pix_bin << endl;  
+		#endif
+    }
     
-    // while ( result <= minShortExposure && pix_bin > 1 )
-    // {
-    //     result *= 4 ;
-    //     pix_bin /= 2 ;
-    // }
+    while ( result <= minShortExposure && pix_bin > 1 )
+    {
+        result *= 4 ;
+        pix_bin /= 2 ;
+		#ifdef SK_DEBUG
+		cerr << "exposure: " << result << " bin: " << pix_bin << endl;  
+		#endif
+    }
 	if ( result <= minShortExposure )
 		return minShortExposure ;
 	unsigned long mult = floor ( result / minShortExposure ) ;
@@ -445,6 +452,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
     if ( pix_bin > 4 )
         pix_bin = 4 ;
 	return result ;
+	#undef SK_DEBUG
 }
 /* End calculate optimum exposure */
 
@@ -1075,8 +1083,8 @@ void * housekeeping_thread(void *t)
 				#endif
 			}
 		}
-		cerr << "Housekeeping: Board Temp: " << boardtemp / 100.0 << " C,"
-			 << " Chassis Temp: " << chassistemp / 100.0 << " C" << endl ; 
+		// cerr << "Housekeeping: Board Temp: " << boardtemp / 100.0 << " C,"
+		// 	 << " Chassis Temp: " << chassistemp / 100.0 << " C" << endl ; 
 		if (boardlogstat){
 			put_data(tempboard,tnow);
 			put_data(tempboard,(char)(boardtemp/100));
@@ -1088,9 +1096,9 @@ void * housekeeping_thread(void *t)
 		int16_t adc0, adc1 ;
 		adc0 = csensor.readADC_SingleEnded(0);
 		adc1 = csensor.readADC_SingleEnded(1);
-		cerr << "Housekeeping: ADC:" << endl
-			 << "Housekeeping: A0: " << adc0 << " V" << endl
-			 << "Housekeeping: A1: " << adc1 << " V" << endl ; //uncalibrated voltage for current
+		// cerr << "Housekeeping: ADC:" << endl
+		// 	 << "Housekeeping: A0: " << adc0 << " V" << endl
+		// 	 << "Housekeeping: A1: " << adc1 << " V" << endl ; //uncalibrated voltage for current
 		usleep(1000000); //every 1s
 	}
 	#ifdef RPI //ensure camera and heater are OFF
@@ -1151,7 +1159,7 @@ void * datavis_thread(void *t)
         perror("listen"); 
         //exit(EXIT_FAILURE); 
     }
-	cerr << "DataVis: Main: Server File: " << server_fd << endl ;
+	// cerr << "DataVis: Main: Server File: " << server_fd << endl ;
 	while(!done)
 	{
 		valread = 0 ;
@@ -1163,13 +1171,13 @@ void * datavis_thread(void *t)
 			if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         	{ 
             	perror("accept"); 
-				cerr << "DataVis: Accept from socket error!" <<endl ;
+				// cerr << "DataVis: Accept from socket error!" <<endl ;
         	}
             ssize_t numsent = send(new_socket,&global_p.buf[i],PACK_SIZE,0);
 			//cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
 			if ( numsent != PACK_SIZE ){
 				perror("DataVis: Send: ");
-				cerr << "DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
+				// cerr << "DataVis: Reported sent data: " << numsent << "/" << PACK_SIZE << endl;
 			}
             //cerr << "DataVis: Data sent" << endl ;
             //valread = read(sock,recv_buf,32);
@@ -1177,7 +1185,7 @@ void * datavis_thread(void *t)
 			close(new_socket);
 		}
 		//sleep(1);
-		cerr << "DataVis thread: Sent" << endl ;
+		// cerr << "DataVis thread: Sent" << endl ;
 	}
 	close(server_fd);
 	pthread_exit(NULL);
