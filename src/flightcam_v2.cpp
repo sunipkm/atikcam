@@ -862,9 +862,9 @@ void * camera_thread(void *t)
 										put_data(templog, timenow());
 										put_data(templog, temp);
 										templog << (unsigned char) 0x00 ;
-										//#ifdef SK_DEBUG
+										#ifdef SK_DEBUG
 										cerr << "Info: Sensor: " << sensor << " Temp: " << temp << " C" << endl ;
-										//#endif
+										#endif
 									}
 								}
 								usleep ( 100000 ) ; //100ms
