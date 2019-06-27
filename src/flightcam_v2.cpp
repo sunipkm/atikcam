@@ -886,6 +886,7 @@ void * camera_thread(void *t)
                 width  = device -> imageWidth(pixelCX, pix_bin) ;
                 height = device -> imageHeight(pixelCY, pix_bin) ;
                 
+				imgsize = width * height ;
 				cerr << "Width: " << width << " Height: " << height << endl ;
 
 				imgdata -> tnow = tnow ;
