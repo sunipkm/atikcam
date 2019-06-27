@@ -358,7 +358,7 @@ unsigned long long int timenow()
 /* Calculate optimum exposure */
 double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize , double exposure )
 {
-	#define SK_DEBUG
+	//#define SK_DEBUG
 	#ifdef SK_DEBUG
 	cerr << __FUNCTION__ << " : Received exposure: " << exposure << endl ;
 	#endif
@@ -452,7 +452,7 @@ double find_optimum_exposure ( unsigned short * picdata , unsigned int imgsize ,
     if ( pix_bin > 4 )
         pix_bin = 4 ;
 	return result ;
-	#undef SK_DEBUG
+	//#undef SK_DEBUG
 }
 /* End calculate optimum exposure */
 
