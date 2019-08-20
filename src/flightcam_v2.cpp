@@ -35,6 +35,7 @@ volatile const char copyright [] = "Copyright Sunip K Mukherjee, 2018. Can be fr
 #include <linux/reboot.h>
 #include <sys/reboot.h>
 #include <sys/statvfs.h>
+#include <sys/stat.h>
 #include <limits.h>
 #include <omp.h>
 #include <sys/socket.h> 
@@ -105,6 +106,9 @@ ofstream errlog ;
 volatile int boardtemp , chassistemp ; //globals that both threads can access
 
 bool cam_off = false ;
+
+int currdirid = 0 ;
+string dirsuffix[] = {"a","b","c"};
 
 #ifndef CCD_COOLDOWN_TIME
 #define CCD_COOLDOWN_TIME 60*1000 // in milliseconds
@@ -719,7 +723,6 @@ void * camera_thread(void *t)
 
 			/** Let's save the data first **/
 			string gfname ;
-			gfname = to_string(tnow) + ".fit[compress]" ;
 			image * imgdata = new image ;
 			
 			imgdata -> tnow = tnow ;
@@ -729,21 +732,25 @@ void * camera_thread(void *t)
 			imgdata -> exposure = exposure ;
             memcpy(&(imgdata->picdata), picdata, width*height *sizeof(unsigned short));
 			//(imgdata -> picdata) = picdata ; // FIX WITH MEMCPY
-
-			if ( save(gfname.c_str(),imgdata) )
+			for ( int dirsel = 0 ; dirsel < 3 ; dirsel++ )
 			{
+				gfname = to_string(currdirid) + "_" + dirsuffix[dirsel] + to_string(tnow) + ".fit[compress]" ;
+				if ( save(gfname.c_str(),imgdata) )
+				{
+					#ifdef SK_DEBUG
+					cerr << "Error: Could not open filestream to write data to." << endl ;
+					#endif
+					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
+					delete[] picdata ;
+					delete devcap  ;
+					device -> close() ;
+					break ;
+				}
+				sync();
 				#ifdef SK_DEBUG
-				cerr << "Error: Could not open filestream to write data to." << endl ;
+				cerr << "Info: Wrote tnow -> " << tnow << ", exposure -> " << exposure << endl ;
 				#endif
-				errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
-				delete[] picdata ;
-				delete devcap  ;
-				device -> close() ;
-				break ;
 			}
-			#ifdef SK_DEBUG
-			cerr << "Info: Wrote tnow -> " << tnow << ", exposure -> " << exposure << endl ;
-			#endif
 
 			/*****************************/
 
@@ -880,7 +887,6 @@ void * camera_thread(void *t)
 				cerr << "Info: Picture taken. Processing." << endl ;
 				#endif
 				/** Post-processing **/
-				gfname = to_string(tnow) + ".fit[compress]" ;
 				//image * imgdata = new image ;
                 
                 width  = device -> imageWidth(pixelCX, pix_bin) ;
@@ -911,18 +917,25 @@ void * camera_thread(void *t)
                 // global_p.a.chassistemp = chassistemp ;
 				// cerr << "Camera: " << global_p.a.exposure << endl ;
 				#endif
-                if ( save(gfname.c_str(), imgdata) )
+				for ( int dirsel = 0 ; dirsel < 3 ; dirsel++ )
 				{
+					gfname = to_string(currdirid) + "_" + dirsuffix[dirsel] + to_string(tnow) + ".fit[compress]" ;
+					if ( save(gfname.c_str(),imgdata) )
+					{
+						#ifdef SK_DEBUG
+						cerr << "Error: Could not open filestream to write data to." << endl ;
+						#endif
+						errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
+						delete[] picdata ;
+						delete devcap  ;
+						device -> close() ;
+						break ;
+					}
+					sync() ;
 					#ifdef SK_DEBUG
-					cerr << "Error: Could not open filestream to write data to." << endl ;
+					cerr << "Info: Wrote tnow -> " << tnow << ", exposure -> " << exposure << endl ;
 					#endif
-					errlog << "[" << timenow() << "]" << __FILE__ << ": " << __LINE__ << ": " << "Error: Could not open output stream. Check for storage space?" << endl ;
-					delete[] picdata ;
-					delete devcap  ;
-					device -> close() ;
-					break ;
 				}
-				sync() ;
 				
 				#ifdef SK_DEBUG
 				cerr << "Info: Loop: Wrote data to disk." << endl ;
@@ -1198,6 +1211,56 @@ void * datavis_thread(void *t)
 /* Data visualization server thread */
 int main ( void )
 {
+	if ( getcwd(curr_dir,sizeof(curr_dir)) == NULL ) //can't get pwd? Something is seriously wrong. System is shutting down.
+	{
+		perror("Main: getcwd() error, shutting down.") ;
+		if (errlog.good()) errlog << "Main: getcwd() error, shutting down. errno" << errno << endl ;
+		sys_poweroff() ;
+		return 1 ;
+	}
+	/** Current save dir set */
+	currdirid = 0 ;
+	if ( access ( "dirnamepref.txt".c_str() , F_OK ) != -1 ) // directory file exists!
+	{
+		cerr << "Directory name prefix file exists" << endl ;
+		ifstream dirfile ;
+		dirfile.open("dirnamepref.txt");
+		dirfile >> currdirid ;
+		cerr << "Current directory id: " << currdirid << endl ;
+		dirfile.close();
+
+		do {
+			bool anydirpresent = false ; //assume no directories are present
+			for ( const string &dirsuf: dirsuffix) //for all suffixes
+			{
+				string dirname = to_string(curr_dir) + to_string(currdirid) + "_" + dirsuf ; //create dir name string
+				struct stat st ; //stat buffer
+				stat(dirname.c_str(), &st) ; //stat dir
+				anydirpresent |= S_ISDIR(st.st_mode) ;//stat if directory exists
+			}
+			if ( anydirpresent ) //if any dir present increase currdirid and check again
+				currdirid++ ;
+		} while ( anydirpresent ) ;
+
+		// delete the file so that the new dirnamepref can be written
+		if ( remove("dirnamepref.txt") )
+		cerr << "Directory name prefix file delete error" << endl ;
+		sync() ;
+	}
+	ofstream dirfile ;
+	dirfile.open("dirnamepref.txt");
+	dirfile << currdirid << endl ;
+	dirfile.close();
+	sync() ;
+	for ( const string &dirsuf: dirsuffix)
+	{
+		string command = "mkdir -p " + to_string(currdirid) + "_"  + dirsuf ;
+		int dir_err = system(command.c_str()) ;
+		if ( dir_err == -1 )
+			perror ("Error creating directory") ;
+	}
+	sync() ;
+	
 	/** Error Log **/
 	ofstream errlog ;
 	#ifndef ERRLOG_LOCATION
@@ -1253,13 +1316,6 @@ int main ( void )
     /* End set up interrupt handler */
 
     /* Look for free space at init */
-    if ( getcwd(curr_dir,sizeof(curr_dir)) == NULL ) //can't get pwd? Something is seriously wrong. System is shutting down.
-	{
-		perror("Main: getcwd() error, shutting down.") ;
-		if (errlog.good()) errlog << "Main: getcwd() error, shutting down. errno" << errno << endl ;
-		sys_poweroff() ;
-		return 1 ;
-	}
     cerr << "Main: PWD: " << curr_dir << endl ;
     boost::filesystem::space_info si = boost::filesystem::space(curr_dir) ;
 	long long free_space = (long long) si.available ;
