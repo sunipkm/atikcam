@@ -1220,7 +1220,7 @@ int main ( void )
 	}
 	/** Current save dir set */
 	currdirid = 0 ;
-	if ( access ( "dirnamepref.txt".c_str() , F_OK ) != -1 ) // directory file exists!
+	if ( access ( "dirnamepref.txt" , F_OK ) != -1 ) // directory file exists!
 	{
 		cerr << "Directory name prefix file exists" << endl ;
 		ifstream dirfile ;
@@ -1228,12 +1228,12 @@ int main ( void )
 		dirfile >> currdirid ;
 		cerr << "Current directory id: " << currdirid << endl ;
 		dirfile.close();
-
+		bool anydirpresent ;
 		do {
-			bool anydirpresent = false ; //assume no directories are present
+			anydirpresent = false ; //assume no directories are present
 			for ( const string &dirsuf: dirsuffix) //for all suffixes
 			{
-				string dirname = to_string(curr_dir) + to_string(currdirid) + "_" + dirsuf ; //create dir name string
+				string dirname = (curr_dir) + to_string(currdirid) + "_" + dirsuf ; //create dir name string
 				struct stat st ; //stat buffer
 				stat(dirname.c_str(), &st) ; //stat dir
 				anydirpresent |= S_ISDIR(st.st_mode) ;//stat if directory exists
