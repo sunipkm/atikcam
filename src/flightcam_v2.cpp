@@ -1249,7 +1249,7 @@ int main ( void )
 	}
 	ofstream dirfile ;
 	dirfile.open("dirnamepref.txt");
-	dirfile << currdirid << endl ;
+	dirfile << currdirid++ << endl ;
 	dirfile.close();
 	sync() ;
 	for ( const string &dirsuf: dirsuffix)
