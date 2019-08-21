@@ -734,7 +734,7 @@ void * camera_thread(void *t)
 			//(imgdata -> picdata) = picdata ; // FIX WITH MEMCPY
 			for ( int dirsel = 0 ; dirsel < 3 ; dirsel++ )
 			{
-				gfname = to_string(currdirid) + "_" + dirsuffix[dirsel] + to_string(tnow) + ".fit[compress]" ;
+				gfname = to_string(currdirid) + "_" + dirsuffix[dirsel] + "/" + to_string(tnow) + ".fit[compress]" ;
 				if ( save(gfname.c_str(),imgdata) )
 				{
 					#ifdef SK_DEBUG
@@ -919,7 +919,7 @@ void * camera_thread(void *t)
 				#endif
 				for ( int dirsel = 0 ; dirsel < 3 ; dirsel++ )
 				{
-					gfname = to_string(currdirid) + "_" + dirsuffix[dirsel] + to_string(tnow) + ".fit[compress]" ;
+					gfname = to_string(currdirid) + "_" + dirsuffix[dirsel] + "/" + to_string(tnow) + ".fit[compress]" ;
 					if ( save(gfname.c_str(),imgdata) )
 					{
 						#ifdef SK_DEBUG
