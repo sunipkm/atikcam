@@ -54,5 +54,6 @@ Icon*
 .vscode
 *.ini
 *.deb
+!atikccd*.deb
 
 lib
